@@ -1,10 +1,9 @@
 {
   "name": "com.chronicvagrant.sosoutils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "Soso.Utils",
   "description": "Helpers to make game development a little easier",
   "unity": "6000.3",
-  "unityRelease": "1f1",
   "author": {
     "name": "Ky Price",
     "email": "chronicvagrant@gmail.com",
