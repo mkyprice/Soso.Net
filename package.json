@@ -10,7 +10,7 @@
     "url": "https://chronicvagrant.com"
   },
   "dependencies": {
-    "com.chronicvagrant.sosoutils" : "https://github.com/mkyprice/Soso.Utils.git"
+    "com.chronicvagrant.sosoutils" : "https://github.com/mkyprice/Soso.Utils.git#v1.01"
   },
   "keywords": [
     "networking",
