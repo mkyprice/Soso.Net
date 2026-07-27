@@ -1,12 +1,19 @@
 {
-  "name": "com.chronicvagrant.sosoutils",
+  "name": "com.chronicvagrant.sosonet",
   "version": "1.0.1",
-  "displayName": "Soso.Utils",
-  "description": "Helpers to make game development a little easier",
+  "displayName": "Soso.Net",
+  "description": "A Unity networking solution",
   "unity": "6000.3",
   "author": {
     "name": "Ky Price",
     "email": "chronicvagrant@gmail.com",
     "url": "https://chronicvagrant.com"
-  }
+  },
+  "dependencies": {
+    "com.chronicvagrant.sosoutils" : "https://github.com/mkyprice/Soso.Utils.git"
+  },
+  "keywords": [
+    "networking",
+    "multiplayer"
+  ]
 }
