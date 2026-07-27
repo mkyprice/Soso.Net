@@ -1,0 +1,16 @@
+{
+    "name": "SosoNetworking",
+    "rootNamespace": "Soso.Net",
+    "references": [
+        "GUID:f6a582d9c84ea4949b25dfec18008e93"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
