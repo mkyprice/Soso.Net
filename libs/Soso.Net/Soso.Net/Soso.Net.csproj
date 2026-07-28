@@ -7,8 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Soso.Serialization\Soso.Serialization\Soso.Serialization.csproj" />
-        <ProjectReference Include="..\..\Soso.Utils\Soso.Utils\Soso.Utils.csproj" ExcludeAssets="runtime" Private="false"/>
+        <ProjectReference Include="..\..\..\..\Soso.Serialization\libs\Soso.Serialization\Soso.Serialization\Soso.Serialization.csproj" />
+        <ProjectReference Include="..\..\..\..\Soso.Utils\libs\Soso.Utils\Soso.Utils\Soso.Utils.csproj" ExcludeAssets="runtime" Private="false"/>
     </ItemGroup>
 
     <ItemGroup>

@@ -1,8 +1,7 @@
 ﻿using Soso.Net.Logging;
-using Soso.Net.Transports.TCP;
 using System.Diagnostics;
 using System.Net;
-using Soso.Utils.Logging;
+using LOG_LEVEL = Soso.Utils.Logging.LOG_LEVEL;
 
 namespace Soso.Net.Benchmarks;
 

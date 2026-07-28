@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
-using System.IO;
 using Soso.Utils.Logging;
 
 namespace Soso.Net.Logging
