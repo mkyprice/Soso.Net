@@ -1,6 +1,6 @@
 {
   "name": "com.chronicvagrant.soso-net",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "displayName": "Soso.Net",
   "description": "A Unity networking solution",
   "unity": "6000.3",
@@ -10,7 +10,7 @@
     "url": "https://chronicvagrant.com"
   },
   "dependencies": {
-    "com.chronicvagrant.sosoutils" : "1.0.1",
+    "com.chronicvagrant.soso-utils" : "1.0.1",
     "com.chronicvagrant.soso-serialization" : "1.0.0"
   },
   "keywords": [
