@@ -5,10 +5,10 @@ namespace DefaultNamespace
 {
     public class DemoSpawner : TypedNetworkSpawner<SPAWNABLES>
     {
-        protected override void Spawn(SPAWNABLES? spawnType, NetworkIdentity identity)
+        protected override void OnSpawnInternal(SPAWNABLES? spawnType, NetworkIdentity identity)
         {
             Debug.Log("Spawning " + spawnType.ToString());
-            base.Spawn(spawnType, identity);
+            base.OnSpawnInternal(spawnType, identity);
         }
     }
 }

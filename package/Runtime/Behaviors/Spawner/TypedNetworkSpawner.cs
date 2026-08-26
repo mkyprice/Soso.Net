@@ -31,13 +31,13 @@ namespace Soso.Net.Behaviors
 
 		#endregion
 
-		protected override void Spawn(int? spawnType, NetworkIdentity identity)
+		protected override void OnSpawnInternal(int? spawnType, NetworkIdentity identity)
 		{
 			var enumType = ((ulong?)spawnType)?.ToEnum<TEnum>();
-			Spawn(enumType, identity);
+			OnSpawnInternal(enumType, identity);
 		}
 
-		protected virtual void Spawn(TEnum? spawnType, NetworkIdentity identity)
+		protected virtual void OnSpawnInternal(TEnum? spawnType, NetworkIdentity identity)
 		{
 		}
 	}

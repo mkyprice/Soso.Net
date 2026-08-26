@@ -389,6 +389,8 @@ namespace Soso.Net.Behaviors
 			
 			OnSpawn?.Invoke(data.Value);
 			
+			OnSpawnInternal(spawnType, identity);
+			
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Spawned {inst} with id {id}", ToString(spawnType), instanceId);
 			return true;
 		}
@@ -408,7 +410,7 @@ namespace Soso.Net.Behaviors
 				DestroyImmediate(identity.gameObject);
 			}
 
-			Despawn(data.Id, identity);
+			OnDespawnInternal(data.Id, identity);
 		}
 
 		private NetworkIdentity InstantiateIdentity(Scene scene, int spawnType, Vector3 position, Quaternion rotation)
@@ -519,11 +521,11 @@ namespace Soso.Net.Behaviors
 			return spawnType != null ? spawnType.ToString() : "?";
 		}
 		
-		protected virtual void Spawn(int? spawnType, NetworkIdentity identity)
+		protected virtual void OnSpawnInternal(int? spawnType, NetworkIdentity identity)
 		{
 		}
 		
-		protected virtual void Despawn(NetworkInstanceId oldId, NetworkIdentity identity)
+		protected virtual void OnDespawnInternal(NetworkInstanceId oldId, NetworkIdentity identity)
 		{
 		}
 
