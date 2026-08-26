@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Soso.Net.Behaviors.Rpc;
+using Soso.Net.Components.Spawning;
 using Soso.Net.Extensions;
 using Soso.Net.Logging;
 using Soso.Net.Models.Packets;
@@ -12,17 +13,20 @@ using UnityEngine.SceneManagement;
 
 namespace Soso.Net.Behaviors
 {
-    
 	[Serializable]
 	// [RequireComponent(typeof(NetworkIdentity))]
-	public abstract class INetworkSpawner : BaseNetworkInstance
+	public class INetworkSpawner : BaseNetworkInstance
 	{
+		[SerializeField] public SpawnList Prefabs;
+		
 		public override bool IsOwner => true;
 		protected ushort SessionId { get; private set; }
 		public new NetworkController Network { get; private set; }
 		
-		protected NetworkIdGenerator _idGenerator;
-		protected NetworkIdGenerator _serverObjectIdGenerator;
+		private NetworkIdGenerator _idGenerator;
+		private NetworkIdGenerator _serverObjectIdGenerator;
+		
+		private Dictionary<Scene, GameObjectPool> _pools = new Dictionary<Scene, GameObjectPool>();
 
 		public override void Despawn()
 		{
@@ -136,6 +140,13 @@ namespace Soso.Net.Behaviors
 			{
 				DespawnInternal(instance.Identity.InstanceId);
 			}
+			
+			// Cleanup pool
+			if (_pools.TryGetValue(scene, out GameObjectPool pool))
+			{
+				pool.Cleanup();
+				_pools.Remove(scene);
+			}
 		}
 
 		#endregion
@@ -164,7 +175,7 @@ namespace Soso.Net.Behaviors
 
 		public bool InstanceExists(NetworkInstanceId id) => _instances.ContainsKey(id);
 
-		public NetworkInstanceData? CreateInstanceData(ulong? type, BaseNetworkInstance identity, NetworkInstanceId id)
+		public NetworkInstanceData? CreateInstanceData(int? type, BaseNetworkInstance identity, NetworkInstanceId id)
 		{
 			var instanceId = id;
 			var ownerId = instanceId.SessionId;
@@ -366,7 +377,7 @@ namespace Soso.Net.Behaviors
 
 		#region Spawning
 		
-		protected virtual bool Initialize(ulong? spawnType, NetworkIdentity identity, NetworkInstanceId instanceId)
+		protected virtual bool Initialize(int? spawnType, NetworkIdentity identity, NetworkInstanceId instanceId)
 		{
 			var data = CreateInstanceData(spawnType, identity, instanceId);
 			if (data == null)
@@ -380,6 +391,32 @@ namespace Soso.Net.Behaviors
 			
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Spawned {inst} with id {id}", ToString(spawnType), instanceId);
 			return true;
+		}
+
+		private void DestroyIdentity(NetworkIdentity identity, NetworkInstanceData data)
+		{
+			var instanceType = data.Type;
+			var scene = identity.gameObject.scene;
+			var pool = GetPool(scene);
+			if (instanceType != null && pool.HasType(instanceType.Value))
+			{
+				pool.Return(identity, instanceType.Value);
+			}
+			else
+			{
+				identity.OnDespawn();
+				DestroyImmediate(identity.gameObject);
+			}
+
+			Despawn(data.Id, identity);
+		}
+
+		private NetworkIdentity InstantiateIdentity(Scene scene, int spawnType, Vector3 position, Quaternion rotation)
+		{
+			var parent = SpawnerRegistry<int>.GetParent(spawnType);
+			var pool = GetPool(scene);
+			var inst = pool.Spawn(spawnType, position, rotation, parent);
+			return inst;
 		}
 		
 		public void RegisterStaticInstance(NetworkIdentity identity)
@@ -400,7 +437,7 @@ namespace Soso.Net.Behaviors
 			Initialize(null, identity, instanceId);
 		}
 		
-		public NetworkIdentity Spawn(Scene scene, ulong typeValue, Vector3 position, Quaternion rotation)
+		public NetworkIdentity Spawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation)
 		{
 			var instance = InstantiateIdentity(scene, typeValue, position, rotation);
 
@@ -439,7 +476,7 @@ namespace Soso.Net.Behaviors
 			return instance;
 		}
 		
-		public NetworkIdentity LoadSpawn(Scene scene, ulong typeValue, Vector3 position, Quaternion rotation)
+		public NetworkIdentity LoadSpawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation)
 		{
 			var instance = InstantiateIdentity(scene, typeValue, position, rotation);
 			
@@ -461,13 +498,34 @@ namespace Soso.Net.Behaviors
 
 		#endregion
 
-		#region Abstruct Methods
+		#region Pools
 		
-		protected abstract void DestroyIdentity(NetworkIdentity identity, NetworkInstanceData data);
-		
-		protected abstract NetworkIdentity InstantiateIdentity(Scene scene, ulong spawnType, Vector3 position, Quaternion rotation);
+		private GameObjectPool GetPool(Scene scene)
+		{
+			if (_pools.TryGetValue(scene, out GameObjectPool pool) == false)
+			{
+				pool = new GameObjectPool(Prefabs);
+				_pools[scene] = pool;
+			}
+			return pool;
+		}
 
-		protected abstract string ToString(ulong? spawnType);
+		#endregion
+		
+		#region Virtual Methods
+
+		protected virtual string ToString(int? spawnType)
+		{
+			return spawnType != null ? spawnType.ToString() : "?";
+		}
+		
+		protected virtual void Spawn(int? spawnType, NetworkIdentity identity)
+		{
+		}
+		
+		protected virtual void Despawn(NetworkInstanceId oldId, NetworkIdentity identity)
+		{
+		}
 
 		#endregion
 
@@ -485,7 +543,7 @@ namespace Soso.Net.Behaviors
 			var source = cmd.Id.SessionId;
 			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsHost())) return;
 
-			ulong spawnable = cmd.SpawnType;
+			int spawnable = cmd.SpawnType;
 			var scene = SceneManager.GetSceneByBuildIndex(cmd.SceneId);
 			var instance = InstantiateIdentity(scene, spawnable, cmd.Position, cmd.Rotation);
 			Initialize(spawnable, instance, cmd.Id);

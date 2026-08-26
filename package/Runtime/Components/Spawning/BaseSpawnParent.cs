@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Soso.Net.Components.Spawning
 {
     public class BaseSpawnParent<TEnum> : MonoBehaviour
-        where TEnum : unmanaged, Enum
+        where TEnum : unmanaged
     {
         [SerializeField] public List<TEnum> SpawnTypes;
 

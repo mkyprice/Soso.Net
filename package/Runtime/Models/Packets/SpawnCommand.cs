@@ -18,7 +18,7 @@ namespace Soso.Net.Models.Packets
 		}
 		public double Time { get; set; }
 		public bool SyncTime => true;
-		public ulong SpawnType;
+		public int SpawnType;
 		public ushort SceneId;
 		public NetworkInstanceId Id;
 		public Vector3 Position;
