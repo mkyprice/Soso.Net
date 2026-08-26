@@ -445,7 +445,7 @@ namespace Soso.Net.Behaviors
 
 			ushort sceneId = scene.GetNetworkId();
 			NetworkInstanceId id;
-			if (instance.IsServerAuthority)
+			if (instance.IsServerAuthority && instance.IsClientAuthority == false)
 			{
 				if (INetworkManager.GetInstance().IsHost() == false)
 				{
