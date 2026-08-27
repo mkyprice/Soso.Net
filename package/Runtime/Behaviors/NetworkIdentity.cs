@@ -38,7 +38,7 @@ namespace Soso.Net.Behaviors
 			}
 		}
 		
-		public void Despawn()
+		public override void Despawn()
 		{
 			if (InstanceId == 0)
 			{
@@ -48,7 +48,7 @@ namespace Soso.Net.Behaviors
 			INetworkManager.GetSpawner()?.Despawn(this);
 		}
 		
-		public void DespawnLocal()
+		public override void DespawnLocal()
 		{
 			if (InstanceId == 0)
 			{

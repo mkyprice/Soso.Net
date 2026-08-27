@@ -315,6 +315,16 @@ namespace Soso.Net.Behaviors
 			ResetInstance();
 		}
 
+		public virtual void Despawn()
+		{
+			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{name} is not available for {this}", nameof(Despawn), this);
+		}
+
+		public virtual void DespawnLocal()
+		{
+			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{name} is not available for {this}", nameof(DespawnLocal), this);
+		}
+
 		#endregion
 
 		#region RPC Functions
