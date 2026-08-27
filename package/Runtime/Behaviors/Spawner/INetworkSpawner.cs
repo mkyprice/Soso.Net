@@ -25,10 +25,8 @@ namespace Soso.Net.Behaviors
 		private NetworkIdGenerator _serverObjectIdGenerator;
 		private Dictionary<Scene, GameObjectPool> _pools = new Dictionary<Scene, GameObjectPool>();
 
-		protected override void Start()
+		private void Start()
 		{
-			base.Start();
-			
 			if (TryGetComponent(out INetworkManager _) == false)
 			{
 				DestroyImmediate(gameObject);
@@ -54,12 +52,6 @@ namespace Soso.Net.Behaviors
 
 		public void InitializeSpawner()
 		{
-			if (IsInitialized)
-			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Spawner is already initialized");
-				return;
-			}
-
 			InstanceId = NetworkInstanceId.Spawner;
 			Network = INetworkManager.GetInstance().Network;
 			SessionId = INetworkManager.GetInstance().Session.Session?.SessionId ?? 0;

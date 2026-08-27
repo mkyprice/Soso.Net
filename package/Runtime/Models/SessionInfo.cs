@@ -9,6 +9,11 @@ namespace Soso.Net.Models
         public ulong ConnectionId;
         public ushort SessionId;
 
+        public override string ToString()
+        {
+            return $"Session({ConnectionId}:{SessionId})";
+        }
+
         public override bool Equals(object obj)
         {
             return obj is SessionInfo session && session.ConnectionId == ConnectionId && session.SessionId == SessionId;

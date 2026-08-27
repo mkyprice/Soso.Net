@@ -59,15 +59,6 @@ namespace Soso.Net.Behaviors
 		private bool _isInitialized = false;
 		private CancellationTokenSource _cancellationTokenSource;
 		
-		protected virtual void Start()
-		{
-			// Starting but have not been initialized
-			if (_isInitialized == false)
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{netId} - {name} has not been initialized", nameof(NetworkIdentity), gameObject.name);
-			}
-		}
-
 		internal void Initialize(NetworkInstanceId instanceId)
 		{
 			if (_isInitialized)
@@ -79,7 +70,7 @@ namespace Soso.Net.Behaviors
 			_networkController = INetworkManager.GetInstance().Network;
 			_rpc = new RpcManager(IsOwner, Send);
 			_rpc.AddTarget(this, MY_RPC_RECEIVER_ID);
-			StartMessageThread();
+			// StartMessageThread();
 			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Initializing NetworkIdentity {name} with id {id}", name, InstanceId);
 
 			_receivers = new List<INetworkReceiver>();
@@ -89,6 +80,24 @@ namespace Soso.Net.Behaviors
 				AddReceiver(receivers[i]);
 			}
 			_isInitialized = true;
+		}
+
+		protected virtual void Update()
+		{
+			if (false == _isInitialized) return;
+			
+			if (_timedReceiveQueue.TryDequeueFirst(out var message) && message != null)
+			{
+				float messageWait = (float)(message.Time - NetworkTime.LocalTime);
+				if (messageWait > 0.001f)
+				{
+					// Place message back in the queue
+					_timedReceiveQueue.Add(message.Time, message);
+					NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Waiting for {wait}s", messageWait);
+					return;
+				}
+				HandleMessage(message);
+			}
 		}
 
 		#region Receivers
