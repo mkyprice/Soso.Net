@@ -59,68 +59,6 @@ namespace Soso.Net.Behaviors
 		private bool _isInitialized = false;
 		private CancellationTokenSource _cancellationTokenSource;
 		
-		protected virtual void Start()
-		{
-			// Starting but have not been initialized
-			if (_isInitialized == false)
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{netId} - {name} has not been initialized", nameof(NetworkIdentity), gameObject.name);
-			}
-		}
-
-		private async void StartMessageThread()
-		{
-			_cancellationTokenSource = new CancellationTokenSource();
-			try
-			{
-				await RunMessageThread(_cancellationTokenSource.Token);
-			}
-			catch (OperationCanceledException e)
-			{
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Message loop was closed for {name} with message {m}", gameObject ? gameObject.name : nameof(NetworkIdentity), e.Message);
-			}
-			catch (Exception e)
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Message thread encountered a error: {e}\nTrace: {trace}", e.Message, e.StackTrace);
-			}
-		}
-
-		private void CancelMessageThread()
-		{
-			_cancellationTokenSource?.Cancel();
-		}
-		
-		private async Awaitable RunMessageThread(CancellationToken token)
-		{
-			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Starting message thread for {name}:{id}", name, InstanceId);
-			while (true)
-			{
-				token.ThrowIfCancellationRequested();
-				
-				if (_isInitialized)
-				{
-					if (_timedReceiveQueue.TryDequeueFirst(out var message, token) && message != null)
-					{
-						float messageWait = (float)(message.Time - NetworkTime.LocalTime);
-						if (messageWait > 0f)
-						{
-							NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Waiting for {wait}s", messageWait);
-							await Awaitable.WaitForSecondsAsync(messageWait, token);
-						}
-						HandleMessage(message);
-					}
-					else
-					{
-						await Awaitable.NextFrameAsync(token);
-					}
-				}
-				else
-				{
-					await Awaitable.NextFrameAsync(token);
-				}
-			}
-		}
-
 		internal void Initialize(NetworkInstanceId instanceId)
 		{
 			if (_isInitialized)
@@ -132,7 +70,7 @@ namespace Soso.Net.Behaviors
 			_networkController = INetworkManager.GetInstance().Network;
 			_rpc = new RpcManager(IsOwner, Send);
 			_rpc.AddTarget(this, MY_RPC_RECEIVER_ID);
-			StartMessageThread();
+			// StartMessageThread();
 			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Initializing NetworkIdentity {name} with id {id}", name, InstanceId);
 
 			_receivers = new List<INetworkReceiver>();
@@ -144,6 +82,26 @@ namespace Soso.Net.Behaviors
 			_isInitialized = true;
 		}
 
+		protected virtual void Update()
+		{
+			if (false == _isInitialized) return;
+			
+			if (_timedReceiveQueue.TryDequeueFirst(out var message) && message != null)
+			{
+				float messageWait = (float)(message.Time - NetworkTime.LocalTime);
+				if (messageWait > 0.001f)
+				{
+					// Place message back in the queue
+					_timedReceiveQueue.Add(message.Time, message);
+					NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Waiting for {wait}s", messageWait);
+					return;
+				}
+				HandleMessage(message);
+			}
+		}
+
+		#region Receivers
+		
 		public void Deregister(INetworkReceiver receiver)
 		{
 			if (_receivers == null || _isInitialized == false) return;
@@ -185,25 +143,16 @@ namespace Soso.Net.Behaviors
 			return GetComponent<T>();
 		}
 
-		[SosoRpc(RPC_CALL_TYPE.Client, false, true)]
-		private void RpcAddComponent(string typeName)
-		{
-			Type type = Type.GetType(typeName);
-			if (type == null)
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Cannot find type {typeName}", typeName);
-				return;
-			}
-			var receiver = gameObject.AddComponent(type) as INetworkReceiver;
-			AddReceiver(receiver);
-		}
-
-		public void SetRemoteInfo(RemoteInfo remote)
+		internal void SetRemoteInfo(RemoteInfo remote)
 		{
 			_remoteInfo = remote;
 		}
+
+		#endregion
+
+		#region Messaging
 		
-		public void AddMessage(INetworkMessage incoming)
+		internal void AppendMessage(INetworkMessage incoming)
 		{
 			if (this == false)
 			{
@@ -268,10 +217,61 @@ namespace Soso.Net.Behaviors
 			};
 			Send(message, channel);
 		}
+		
+		private async void StartMessageThread()
+		{
+			_cancellationTokenSource = new CancellationTokenSource();
+			try
+			{
+				await RunMessageThread(_cancellationTokenSource.Token);
+			}
+			catch (OperationCanceledException e)
+			{
+				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Message loop was closed for {name} with message {m}", gameObject ? gameObject.name : nameof(NetworkIdentity), e.Message);
+			}
+			catch (Exception e)
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Message thread encountered a error: {e}\nTrace: {trace}", e.Message, e.StackTrace);
+			}
+		}
 
-		public abstract void Despawn();
+		private void CancelMessageThread()
+		{
+			_cancellationTokenSource?.Cancel();
+		}
+		
+		private async Awaitable RunMessageThread(CancellationToken token)
+		{
+			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Starting message thread for {name}:{id}", name, InstanceId);
+			while (true)
+			{
+				token.ThrowIfCancellationRequested();
+				
+				if (_isInitialized)
+				{
+					if (_timedReceiveQueue.TryDequeueFirst(out var message, token) && message != null)
+					{
+						float messageWait = (float)(message.Time - NetworkTime.LocalTime);
+						if (messageWait > 0f)
+						{
+							NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Waiting for {wait}s", messageWait);
+							await Awaitable.WaitForSecondsAsync(messageWait, token);
+						}
+						HandleMessage(message);
+					}
+					else
+					{
+						await Awaitable.NextFrameAsync(token);
+					}
+				}
+				else
+				{
+					await Awaitable.NextFrameAsync(token);
+				}
+			}
+		}
 
-		public abstract void DespawnLocal();
+		#endregion
 
 		#region RPC
 		
@@ -322,6 +322,33 @@ namespace Soso.Net.Behaviors
 		public virtual void OnDespawn()
 		{
 			ResetInstance();
+		}
+
+		public virtual void Despawn()
+		{
+			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{name} is not available for {this}", nameof(Despawn), this);
+		}
+
+		public virtual void DespawnLocal()
+		{
+			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{name} is not available for {this}", nameof(DespawnLocal), this);
+		}
+
+		#endregion
+
+		#region RPC Functions
+		
+		[SosoRpc(RPC_CALL_TYPE.Client, false, true)]
+		private void RpcAddComponent(string typeName)
+		{
+			Type type = Type.GetType(typeName);
+			if (type == null)
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Cannot find type {typeName}", typeName);
+				return;
+			}
+			var receiver = gameObject.AddComponent(type) as INetworkReceiver;
+			AddReceiver(receiver);
 		}
 
 		#endregion

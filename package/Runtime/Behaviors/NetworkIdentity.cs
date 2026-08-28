@@ -1,3 +1,4 @@
+using System;
 using Soso.Net.Extensions;
 using Soso.Net.Logging;
 using UnityEditor;
@@ -29,6 +30,15 @@ namespace Soso.Net.Behaviors
 			EditorUtility.SetDirty(this);
 		}
 #endif
+
+		private void Start()
+		{
+			// Starting but have not been initialized
+			if (IsInitialized == false)
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{netId} - {name} has not been initialized", nameof(NetworkIdentity), gameObject.name);
+			}
+		}
 
 		private void OnDestroy()
 		{

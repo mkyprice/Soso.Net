@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Soso.Net.Behaviors.Rpc;
+using Soso.Net.Components.Spawning;
 using Soso.Net.Extensions;
 using Soso.Net.Logging;
 using Soso.Net.Models.Packets;
@@ -12,31 +13,20 @@ using UnityEngine.SceneManagement;
 
 namespace Soso.Net.Behaviors
 {
-    
-	[Serializable]
-	// [RequireComponent(typeof(NetworkIdentity))]
-	public abstract class INetworkSpawner : BaseNetworkInstance
+	public class INetworkSpawner : BaseNetworkInstance
 	{
+		[SerializeField] public SpawnList Prefabs;
+		
 		public override bool IsOwner => true;
 		protected ushort SessionId { get; private set; }
 		public new NetworkController Network { get; private set; }
 		
-		protected NetworkIdGenerator _idGenerator;
-		protected NetworkIdGenerator _serverObjectIdGenerator;
+		private NetworkIdGenerator _idGenerator;
+		private NetworkIdGenerator _serverObjectIdGenerator;
+		private Dictionary<Scene, GameObjectPool> _pools = new Dictionary<Scene, GameObjectPool>();
 
-		public override void Despawn()
+		private void Start()
 		{
-			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{name} was called on the spawner", nameof(Despawn));
-		}
-		public override void DespawnLocal()
-		{
-			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{name} was called on the spawner", nameof(DespawnLocal));
-		}
-
-		protected override void Start()
-		{
-			base.Start();
-			
 			if (TryGetComponent(out INetworkManager _) == false)
 			{
 				DestroyImmediate(gameObject);
@@ -62,12 +52,6 @@ namespace Soso.Net.Behaviors
 
 		public void InitializeSpawner()
 		{
-			if (IsInitialized)
-			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Spawner is already initialized");
-				return;
-			}
-
 			InstanceId = NetworkInstanceId.Spawner;
 			Network = INetworkManager.GetInstance().Network;
 			SessionId = INetworkManager.GetInstance().Session.Session?.SessionId ?? 0;
@@ -80,13 +64,43 @@ namespace Soso.Net.Behaviors
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not register {name}", name);
 			}
 		}
-		
 
 		public virtual void Shutdown()
 		{
 		}
 
 		#region Scene Management
+
+		public void InitializeScene(Scene scene)
+		{
+			// Find all NetworkId instances in the scene
+			var networkInstances = scene.GetRootGameObjects()
+				.SelectMany(go => go.GetComponentsInChildren<NetworkIdentity>(true))
+				.Where(net => net.IsServerAuthority);
+
+			ulong offset = 0;
+			foreach (var networkInstance in networkInstances)
+			{
+				offset++;
+				RegisterStaticInstance(networkInstance);
+			}
+			_serverObjectIdGenerator.SetSequenceOffset(scene.GetNetworkId(), offset);
+		}
+
+		public virtual void Clear(Scene scene)
+		{
+			foreach (var instance in GetInstancesInScene(scene))
+			{
+				DestroyInstance(instance.Identity.InstanceId);
+			}
+			
+			// Cleanup pool
+			if (_pools.TryGetValue(scene, out GameObjectPool pool))
+			{
+				pool.Cleanup();
+				_pools.Remove(scene);
+			}
+		}
 		
 		protected virtual void OnSceneLoaded(Scene scene, LoadSceneMode arg1)
 		{
@@ -114,36 +128,12 @@ namespace Soso.Net.Behaviors
 			}
 		}
 
-		public void InitializeScene(Scene scene)
-		{
-			// Find all NetworkId instances in the scene
-			var networkInstances = scene.GetRootGameObjects()
-				.SelectMany(go => go.GetComponentsInChildren<NetworkIdentity>(true))
-				.Where(net => net.IsServerAuthority);
-
-			ulong offset = 0;
-			foreach (var networkInstance in networkInstances)
-			{
-				offset++;
-				RegisterStaticInstance(networkInstance);
-			}
-			_serverObjectIdGenerator.SetSequenceOffset(scene.GetNetworkId(), offset);
-		}
-
-		public virtual void Clear(Scene scene)
-		{
-			foreach (var instance in GetInstancesInScene(scene))
-			{
-				DespawnInternal(instance.Identity.InstanceId);
-			}
-		}
-
 		#endregion
 
 		#region Instance Management
 		
-		public Action<NetworkInstanceData> OnSpawn;
-		public Action<NetworkInstanceData> OnDespawn;
+		public Action<NetworkInstanceData> OnInstanceSpawned;
+		public Action<NetworkInstanceData> OnInstanceDespawned;
 		
 		/// <summary>
 		/// <OwnerId, InstanceId[]>
@@ -164,7 +154,7 @@ namespace Soso.Net.Behaviors
 
 		public bool InstanceExists(NetworkInstanceId id) => _instances.ContainsKey(id);
 
-		public NetworkInstanceData? CreateInstanceData(ulong? type, BaseNetworkInstance identity, NetworkInstanceId id)
+		public NetworkInstanceData? CreateInstanceData(int? type, BaseNetworkInstance identity, NetworkInstanceId id)
 		{
 			var instanceId = id;
 			var ownerId = instanceId.SessionId;
@@ -256,7 +246,7 @@ namespace Soso.Net.Behaviors
 			    && ownerIds.Remove(id))
 			{
 				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Successfully deleted instance {id} | {type}", id, ToString(instance.Type));
-				OnDespawn?.Invoke(instance);
+				OnInstanceDespawned?.Invoke(instance);
 				return true;
 			}
 			return false;
@@ -266,6 +256,51 @@ namespace Soso.Net.Behaviors
 
 		#region Despawning
 		
+		/// <summary>
+		/// Despawn identity across all clients
+		/// </summary>
+		/// <param name="go"></param>
+		public void Despawn(GameObject go)
+		{
+			if (go.TryGetComponent(out NetworkIdentity instance))
+			{
+				Despawn(instance);
+			}
+			else
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not find NetworkIdentity on {go}", go.name);
+			}
+		}
+
+		/// <summary>
+		/// Despawn identity across all clients
+		/// </summary>
+		/// <param name="instance"></param>
+		public void Despawn(NetworkIdentity instance)
+		{
+			if (instance.InstanceId == 0)
+			{
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Identity {name} has a default ID. Not despawning", instance.gameObject.name);
+				return;
+			}
+			
+			var id = instance.InstanceId;
+			
+			var cmd = new DespawnCommand()
+			{
+				Id = id,
+			};
+
+			Send(cmd, 0);
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning {name} with Id: {Id}", instance.gameObject.name, id);
+
+			DestroyInstance(cmd.Id);
+		}
+		
+		/// <summary>
+		/// Despawns instance but does not send despawn command
+		/// </summary>
+		/// <param name="go"></param>
 		public void DespawnLocal(GameObject go)
 		{
 			if (go.TryGetComponent(out NetworkIdentity identity))
@@ -278,49 +313,75 @@ namespace Soso.Net.Behaviors
 			}
 		}
 
-		public void DespawnLocal(BaseNetworkInstance id)
+		/// <summary>
+		/// Despawns instance but does not send despawn command
+		/// </summary>
+		/// <param name="id"></param>
+		public void DespawnLocal(NetworkIdentity id)
 		{
 			if (id == null)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Despawn - networkId is null");
 				return;
 			}
-			DespawnInternal(id.InstanceId);
+			DestroyInstance(id.InstanceId);
 		}
 		
-		public void Despawn(GameObject go)
+		/// <summary>
+		/// Internally destroy or return an instance to the pool
+		/// </summary>
+		/// <param name="instanceId"></param>
+		private void DestroyInstance(NetworkInstanceId instanceId)
 		{
-			if (go.TryGetComponent(out NetworkIdentity identity))
+			if (DeleteData(instanceId, out NetworkInstanceData instance) == false)
 			{
-				Despawn(identity);
-			}
-			else
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not find NetworkIdentity on {go}", go.name);
-			}
-		}
-
-		public void Despawn(NetworkIdentity identity)
-		{
-			if (identity.InstanceId == 0)
-			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Identity {name} has a default ID. Not despawning", identity.gameObject.name);
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Failed to delete instance {id}. Instance not found", instanceId);
 				return;
 			}
 			
-			var id = identity.InstanceId;
+			var instanceObj = instance.Identity;
 			
-			var cmd = new DespawnCommand()
+			if (instanceObj == false || instanceObj.gameObject == false)
 			{
-				Id = id,
-			};
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Failed to despawn {id}. Object is not loaded", instanceId);
+				return;
+			}
 
-			// Rpc(RpcDespawn, cmd);
-			Send(cmd, 0);
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning {type} with Id: {Id}", identity, id);
+			var scene = instanceObj.gameObject.scene;
+			if (scene.isLoaded == false)
+			{
+				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Failed to despawn {name}({id}). Scene is not loaded", instanceObj.name, instanceId);
+				return;
+			}
+			
+			var identity = (NetworkIdentity)instanceObj;
+			if (identity == false)
+			{
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Could not find Identity: {id}", instanceId);
+				return;
+			}
+			
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning: Id:{id} Name: {name}", instanceId, identity.name);
+			
+			// Return to pool
+			var instanceType = instance.Type;
+			var pool = GetPool(scene);
+			if (instanceType != null && pool.HasType(instanceType.Value))
+			{
+				pool.Return(identity, instanceType.Value);
+			}
+			else
+			{
+				identity.OnDespawn();
+				DestroyImmediate(identity.gameObject);
+			}
 
-			DespawnInternal(cmd.Id);
+			OnDespawnInternal(instance.Id, identity);
 		}
+
+		#endregion
+
+		#region Spawning
 		
 		public void Catchup(IEnumerable<SpawnCommand> commands)
 		{
@@ -330,83 +391,19 @@ namespace Soso.Net.Behaviors
 			}
 		}
 		
-		protected void DespawnInternal(NetworkInstanceId instanceId)
-		{
-			if (DeleteData(instanceId, out NetworkInstanceData instance) == false)
-			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Failed to delete instance {id}. Instance not found", instanceId);
-				return;
-			}
-
-			if (gameObject == false)
-			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Failed to despawn {id}. Object is not loaded", instanceId);
-				return;
-			}
-
-			if (gameObject.scene.isLoaded == false)
-			{
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Failed to despawn {name}({id}). Scene is not loaded", gameObject.name, instanceId);
-				return;
-			}
-
-			var identity = instance.Identity as NetworkIdentity;
-
-			if (identity == null)
-			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Could not find Identity: {id}", instanceId);
-				return;
-			}
-			
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning: Id:{id} Name: {name}", instanceId, identity.name);
-			DestroyIdentity(identity, instance);
-		}
-
-		#endregion
-
-		#region Spawning
-		
-		protected virtual bool Initialize(ulong? spawnType, NetworkIdentity identity, NetworkInstanceId instanceId)
-		{
-			var data = CreateInstanceData(spawnType, identity, instanceId);
-			if (data == null)
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Failed to create identity {identity} - Could not register");
-				Destroy(identity.gameObject);
-				return false;
-			}
-			
-			OnSpawn?.Invoke(data.Value);
-			
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Spawned {inst} with id {id}", ToString(spawnType), instanceId);
-			return true;
-		}
-		
 		public void RegisterStaticInstance(NetworkIdentity identity)
 		{
 			NetworkInstanceId instanceId = identity.InstanceId;
-			{
-				// ushort sceneId = identity.gameObject.scene.GetNetworkId();
-				// if (identity.IsServerAuthority)
-				// {
-				// 	instanceId = _serverObjectIdGenerator.GetNextId(sceneId);
-				// }
-				// else
-				// {
-				// 	instanceId = _idGenerator.GetNextId(sceneId);
-				// }
-			}
-
-			Initialize(null, identity, instanceId);
+			InitializeIdentity(null, identity, instanceId);
 		}
 		
-		public NetworkIdentity Spawn(Scene scene, ulong typeValue, Vector3 position, Quaternion rotation)
+		public NetworkIdentity Spawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation)
 		{
 			var instance = InstantiateIdentity(scene, typeValue, position, rotation);
 
 			ushort sceneId = scene.GetNetworkId();
 			NetworkInstanceId id;
-			if (instance.IsServerAuthority)
+			if (instance.IsServerAuthority && instance.IsClientAuthority == false)
 			{
 				if (INetworkManager.GetInstance().IsHost() == false)
 				{
@@ -422,7 +419,6 @@ namespace Soso.Net.Behaviors
 			var cmd = new SpawnCommand()
 			{
 				Id = id,
-				SceneId = sceneId,
 				SpawnType = typeValue,
 				Position = position,
 				Rotation = rotation,
@@ -434,12 +430,12 @@ namespace Soso.Net.Behaviors
 			Send(cmd, 0);
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Spawning {type} with Id: {Id}", ToString(typeValue), id);
 			
-			Initialize(typeValue, instance, id);
+			InitializeIdentity(typeValue, instance, id);
 
 			return instance;
 		}
 		
-		public NetworkIdentity LoadSpawn(Scene scene, ulong typeValue, Vector3 position, Quaternion rotation)
+		public NetworkIdentity LoadSpawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation)
 		{
 			var instance = InstantiateIdentity(scene, typeValue, position, rotation);
 			
@@ -454,44 +450,71 @@ namespace Soso.Net.Behaviors
 				throw new ArgumentException($"Spawnable {ToString(typeValue)} is not set to server authority and {nameof(LoadSpawn)} was called");
 			}
 			
-			Initialize(typeValue, instance, id);
+			InitializeIdentity(typeValue, instance, id);
 			
 			return instance;
 		}
-
-		#endregion
-
-		#region Abstruct Methods
 		
-		protected abstract void DestroyIdentity(NetworkIdentity identity, NetworkInstanceData data);
-		
-		protected abstract NetworkIdentity InstantiateIdentity(Scene scene, ulong spawnType, Vector3 position, Quaternion rotation);
-
-		protected abstract string ToString(ulong? spawnType);
-
-		#endregion
-
-		#region RPCs
-
-		private void HandleDespawnMessage(DespawnCommand cmd)
+		private bool InitializeIdentity(int? spawnType, NetworkIdentity identity, NetworkInstanceId instanceId)
 		{
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received despawn command. Id: {Id}", cmd.Id);
-			DespawnInternal(cmd.Id);
+			var data = CreateInstanceData(spawnType, identity, instanceId);
+			if (data == null)
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Failed to create identity {identity} - Could not register");
+				Destroy(identity.gameObject);
+				return false;
+			}
+			
+			OnInstanceSpawned?.Invoke(data.Value);
+			
+			OnSpawnInternal(spawnType, identity);
+			
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Spawned {inst} with id {id}", ToString(spawnType), instanceId);
+			return true;
 		}
-		
-		private void HandleSpawnMessage(SpawnCommand cmd)
-		{
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type}", cmd.Id, ToString(cmd.SpawnType));
-			var source = cmd.Id.SessionId;
-			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsHost())) return;
 
-			ulong spawnable = cmd.SpawnType;
-			var scene = SceneManager.GetSceneByBuildIndex(cmd.SceneId);
-			var instance = InstantiateIdentity(scene, spawnable, cmd.Position, cmd.Rotation);
-			Initialize(spawnable, instance, cmd.Id);
+		private NetworkIdentity InstantiateIdentity(Scene scene, int spawnType, Vector3 position, Quaternion rotation)
+		{
+			var parent = SpawnerRegistry<int>.GetParent(spawnType);
+			var pool = GetPool(scene);
+			var inst = pool.Spawn(spawnType, position, rotation, parent);
+			return inst;
 		}
 
 		#endregion
+
+		#region Pools
+		
+		private GameObjectPool GetPool(Scene scene)
+		{
+			if (_pools.TryGetValue(scene, out GameObjectPool pool) == false)
+			{
+				pool = new GameObjectPool(Prefabs);
+				_pools[scene] = pool;
+			}
+			return pool;
+		}
+
+		#endregion
+		
+		#region Virtual Methods
+
+		protected virtual string ToString(int? spawnType)
+		{
+			return spawnType != null ? spawnType.ToString() : "?";
+		}
+		
+		protected virtual void OnSpawnInternal(int? spawnType, NetworkIdentity identity)
+		{
+		}
+		
+		protected virtual void OnDespawnInternal(NetworkInstanceId oldId, NetworkIdentity identity)
+		{
+		}
+
+		#endregion
+
+		#region Network Messages
 		
 		protected override void HandleMessage(INetworkMessage incoming)
 		{
@@ -508,5 +531,25 @@ namespace Soso.Net.Behaviors
 					break;
 			}
 		}
+		
+		private void HandleSpawnMessage(SpawnCommand cmd)
+		{
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type}", cmd.Id, ToString(cmd.SpawnType));
+			var source = cmd.Id.SessionId;
+			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsHost())) return;
+
+			int spawnable = cmd.SpawnType;
+			var scene = SceneManager.GetSceneByBuildIndex(cmd.Id.SceneId);
+			var instance = InstantiateIdentity(scene, spawnable, cmd.Position, cmd.Rotation);
+			InitializeIdentity(spawnable, instance, cmd.Id);
+		}
+
+		private void HandleDespawnMessage(DespawnCommand cmd)
+		{
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received despawn command. Id: {Id}", cmd.Id);
+			DestroyInstance(cmd.Id);
+		}
+		
+		#endregion
 	}
 }

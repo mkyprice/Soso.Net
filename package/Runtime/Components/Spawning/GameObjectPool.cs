@@ -11,28 +11,27 @@ using Object = UnityEngine.Object;
 namespace Soso.Net.Components.Spawning
 {
     [Serializable]
-    public class GameObjectPool<TEnum>
-        where TEnum : unmanaged, Enum
+    public class GameObjectPool
     {
-        private readonly BaseSpawnList<TEnum> _prefabs;
+        private readonly SpawnList _prefabs;
         
-        private readonly Dictionary<TEnum, Queue<NetworkIdentity>> _pool = new Dictionary<TEnum, Queue<NetworkIdentity>>();
+        private readonly Dictionary<int, Queue<NetworkIdentity>> _pool = new Dictionary<int, Queue<NetworkIdentity>>();
 
-        public GameObjectPool(BaseSpawnList<TEnum> prefabs)
+        public GameObjectPool(SpawnList prefabs)
         {
             _prefabs = prefabs;
         }
 
-        public Spawnable<TEnum> GetSpawnable(TEnum spawnType)
+        public NetworkIdentity GetSpawnable(int spawnType)
         {
-            var prefab = _prefabs.Spawnables.FirstOrDefault(p => p.TypeId.Equals(spawnType));
+            var prefab = _prefabs.Spawnables[spawnType];
             return prefab;
         }
 
-        public void Initialize(TEnum spawnType, int startPoolSize)
+        public void Initialize(int spawnType, int startPoolSize)
         {
             var prefab = GetSpawnable(spawnType);
-            if (prefab.Prefab == null)
+            if (prefab == null)
             {
                 throw new Exception($"Spawnable {spawnType} not found");
             }
@@ -40,7 +39,7 @@ namespace Soso.Net.Components.Spawning
             var queue = GetPool(spawnType);
             for (int i = 0; i < startPoolSize; i++)
             {
-                var instance = Object.Instantiate(prefab.Prefab);
+                var instance = Object.Instantiate(prefab);
                 
                 var poolables = instance.gameObject.GetComponentsInChildren<INetworkPoolable>(true);
                 foreach (var poolable in poolables)
@@ -53,7 +52,7 @@ namespace Soso.Net.Components.Spawning
             }
         }
 
-        public NetworkIdentity Spawn(TEnum spawnType, Vector3 position, Quaternion rotation, Transform parent = null)
+        public NetworkIdentity Spawn(int spawnType, Vector3 position, Quaternion rotation, Transform parent = null)
         {
             NetworkIdentity instance = null;
             var queue = GetPool(spawnType);
@@ -77,11 +76,11 @@ namespace Soso.Net.Components.Spawning
             {
                 NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Spawning {inst} from initialization", spawnType);
                 var prefab = GetSpawnable(spawnType);
-                if (prefab.Prefab == null)
+                if (prefab == null)
                 {
                     throw new Exception($"Spawnable {spawnType} not found");
                 }
-                instance = Object.Instantiate(prefab.Prefab, position, rotation, parent);
+                instance = Object.Instantiate(prefab, position, rotation, parent);
             }
             
             instance.OnSpawn();
@@ -94,7 +93,7 @@ namespace Soso.Net.Components.Spawning
             return instance;
         }
 
-        public void Return(NetworkIdentity instance, TEnum spawnType)
+        public void Return(NetworkIdentity instance, int spawnType)
         {
             if (instance?.gameObject?.scene.isLoaded == false)
             {
@@ -114,7 +113,7 @@ namespace Soso.Net.Components.Spawning
             queue.Enqueue(instance);
         }
 
-        private Queue<NetworkIdentity> GetPool(TEnum spawnType)
+        private Queue<NetworkIdentity> GetPool(int spawnType)
         {
             if (_pool.TryGetValue(spawnType, out var queue) == false)
             {
@@ -124,7 +123,7 @@ namespace Soso.Net.Components.Spawning
             return queue;
         }
 
-        public bool HasType(TEnum spawnType)
+        public bool HasType(int spawnType)
         {
             return _pool.ContainsKey(spawnType);
         }

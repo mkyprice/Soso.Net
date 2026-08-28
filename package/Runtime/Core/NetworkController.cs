@@ -121,7 +121,7 @@ namespace Soso.Net.Behaviors
 					// _receiveQueue.EnqueueFront(message);
 					break;
 				}
-				instance.AddMessage(message);
+				instance.AppendMessage(message);
 			}
 		}
 

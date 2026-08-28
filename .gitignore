@@ -1,3 +1,6 @@
+# Project specific excludes
+soso-net-unity_clone*
+
 # Common IntelliJ Platform excludes
 
 # User specific

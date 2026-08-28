@@ -165,9 +165,10 @@ namespace Soso.Net
 		
 		public async Awaitable<bool> CreateSocketServer(ulong hostId, int virtualPort = 0)
 		{
+			Cleanup();
+			
 			if (await CreateSocketServerInternal(hostId, virtualPort))
 			{
-				Cleanup();
 				return true;
 			}
 			return false;
@@ -182,10 +183,13 @@ namespace Soso.Net
 			}
 			if (await JoinSocketServerInternal(host, virtualPort))
 			{
+				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Joined socket server. Negotiating ID...");
 				if (await Session.NegotiateId(GetClientId()) == false)
 				{
+					NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to negotiate ID");
 					return false;
 				}
+				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Successfully negotiated ID {session}", SessionInfo);
 				Network.Initialize();
 				Spawner.InitializeSpawner();
 				return true;

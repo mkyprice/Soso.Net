@@ -6,7 +6,7 @@ namespace Soso.Net.Components.Spawning
 {
     
     public static class SpawnerRegistry<TEnum>
-        where TEnum : unmanaged, Enum
+        where TEnum : unmanaged
     {
         public static Dictionary<TEnum, BaseSpawnParent<TEnum>> _parents = new();
 
