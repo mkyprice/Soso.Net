@@ -396,6 +396,17 @@ namespace Soso.Net.Behaviors
 			NetworkInstanceId instanceId = identity.InstanceId;
 			InitializeIdentity(null, identity, instanceId);
 		}
+
+		public NetworkIdentity Spawn(Scene scene, GameObject prefab, Vector3 position, Quaternion rotation)
+		{
+			var pool = GetPool(scene);
+			int typeValue = pool.FindType(prefab);
+			if (typeValue < 0)
+			{
+				throw new ArgumentException($"Cannot find spawnable {prefab.name} to {nameof(Spawn)}");
+			}
+			return Spawn(scene, typeValue, position, rotation);
+		}
 		
 		public NetworkIdentity Spawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation)
 		{
@@ -433,6 +444,17 @@ namespace Soso.Net.Behaviors
 			InitializeIdentity(typeValue, instance, id);
 
 			return instance;
+		}
+
+		public NetworkIdentity LoadSpawn(Scene scene, GameObject prefab, Vector3 position, Quaternion rotation)
+		{
+			var pool = GetPool(scene);
+			int typeValue = pool.FindType(prefab);
+			if (typeValue < 0)
+			{
+				throw new ArgumentException($"Cannot find spawnable {prefab.name} to {nameof(LoadSpawn)}");
+			}
+			return LoadSpawn(scene, typeValue, position, rotation);
 		}
 		
 		public NetworkIdentity LoadSpawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation)

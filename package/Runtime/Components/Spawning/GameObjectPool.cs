@@ -22,6 +22,11 @@ namespace Soso.Net.Components.Spawning
             _prefabs = prefabs;
         }
 
+        public int FindType(GameObject prefab)
+        {
+            return _prefabs.Spawnables.FindIndex(spawnable => spawnable.gameObject == prefab);
+        }
+
         public NetworkIdentity GetSpawnable(int spawnType)
         {
             var prefab = _prefabs.Spawnables[spawnType];

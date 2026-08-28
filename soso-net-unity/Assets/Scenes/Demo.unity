@@ -520,6 +520,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4385113f0c2afa745929bf8257ea008f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DemoController
+  prefab: {fileID: 4976361460035056881, guid: b174ce0fa0cdc82409648012023715e7, type: 3}
   NetworkManager: {fileID: 1972800781}
   Spawner: {fileID: 1972800783}
 --- !u!4 &693576530

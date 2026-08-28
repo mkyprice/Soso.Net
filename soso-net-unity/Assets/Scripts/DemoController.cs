@@ -9,6 +9,7 @@ using UnityEngine;
 
 public class DemoController : MonoBehaviour
 {
+    [SerializeField] public GameObject prefab;
     [SerializeField] public DefaultNetworkManager NetworkManager;
     [SerializeField] public DemoSpawner Spawner;
 
@@ -89,6 +90,6 @@ public class DemoController : MonoBehaviour
 
     public void Spawn()
     {
-        Spawner.Spawn(gameObject.scene, 0, Vector3.zero, Quaternion.identity);
+        Spawner.Spawn(gameObject.scene, prefab, Vector3.zero, Quaternion.identity);
     }
 }
