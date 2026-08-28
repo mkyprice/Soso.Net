@@ -5,31 +5,30 @@ using UnityEngine;
 namespace Soso.Net.Components.Spawning
 {
     
-    public static class SpawnerRegistry<TEnum>
-        where TEnum : unmanaged
+    public static class SpawnerRegistry
     {
-        public static Dictionary<TEnum, BaseSpawnParent<TEnum>> _parents = new();
+        public static Dictionary<int, BaseSpawnParent> _parents = new();
 
-        public static Transform GetParent(TEnum spawnType)
+        public static Transform GetParent(int spawnType)
         {
             return _parents.TryGetValue(spawnType, out var parent) ? parent.transform : null;
         }
 
-        public static void Register(BaseSpawnParent<TEnum> parent)
+        public static void Register(BaseSpawnParent parent)
         {
-            foreach (var value in parent.SpawnTypes)
+            foreach (var type in parent.GetTypes())
             {
-                _parents[value] = parent;
+                _parents[type] = parent;
             }
         }
 
-        public static void Deregister(BaseSpawnParent<TEnum> parent)
+        public static void Deregister(BaseSpawnParent parent)
         {
-            foreach (var value in parent.SpawnTypes)
+            foreach (var type in parent.GetTypes())
             {
-                if (_parents.TryGetValue(value, out var current) && current == parent)
+                if (_parents.TryGetValue(type, out var current) && current == parent)
                 {
-                    _parents.Remove(value);
+                    _parents.Remove(type);
                 }
             }
         }

@@ -475,7 +475,7 @@ namespace Soso.Net.Behaviors
 
 		private NetworkIdentity InstantiateIdentity(Scene scene, int spawnType, Vector3 position, Quaternion rotation)
 		{
-			var parent = SpawnerRegistry<int>.GetParent(spawnType);
+			var parent = SpawnerRegistry.GetParent(spawnType);
 			var pool = GetPool(scene);
 			var inst = pool.Spawn(spawnType, position, rotation, parent);
 			return inst;

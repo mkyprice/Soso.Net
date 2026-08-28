@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using Soso.Net.Extensions;
 using UnityEngine;
 
 namespace Soso.Net.Components.Spawning
 {
-    public class BaseSpawnParent<TEnum> : MonoBehaviour
-        where TEnum : unmanaged
+    public abstract class BaseSpawnParent : MonoBehaviour
     {
-        [SerializeField] public List<TEnum> SpawnTypes;
-
+        public abstract IEnumerable<int> GetTypes();
+        
         private void OnEnable()
         {
-            SpawnerRegistry<TEnum>.Register(this);
+            SpawnerRegistry.Register(this);
         }
 
         private void OnDisable()
         {
-            SpawnerRegistry<TEnum>.Deregister(this);
+            SpawnerRegistry.Deregister(this);
         }
     }
 }
