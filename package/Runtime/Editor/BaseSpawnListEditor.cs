@@ -1,4 +1,5 @@
-using System.Text;
+#if UNITY_EDITOR
+
 using Soso.Net.Objects;
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -14,7 +15,7 @@ namespace Soso.Net.Editor
             VisualElement root = new VisualElement();
             
             // Serialize elements
-            SerializedProperty spawnablesProp = serializedObject.FindProperty("Spawnables");
+            SerializedProperty spawnablesProp = serializedObject.FindProperty(nameof(SpawnList.Spawnables));
             PropertyField animationsField = new PropertyField(spawnablesProp);
             root.Add(animationsField);
             
@@ -22,3 +23,5 @@ namespace Soso.Net.Editor
         }
     }
 }
+
+#endif
