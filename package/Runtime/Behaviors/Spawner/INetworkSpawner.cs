@@ -258,23 +258,24 @@ namespace Soso.Net.Behaviors
 		/// <param name="instance"></param>
 		public void Despawn(NetworkIdentity instance)
 		{
+			var id = instance.InstanceId;
+			
 			if (instance.InstanceId == 0)
 			{
 				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Identity {name} has a default ID. Not despawning", instance.gameObject.name);
 				return;
 			}
 			
-			var id = instance.InstanceId;
+			DestroyInstance(id);
 			
 			var cmd = new DespawnCommand()
 			{
 				Id = id,
+				SourceId = SessionId,
 			};
-
 			Send(cmd, 0);
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning {name} with Id: {Id}", instance.gameObject.name, id);
-
-			DestroyInstance(cmd.Id);
+			
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning {name} with Id: {Id}", instance?.gameObject?.name, id);
 		}
 		
 		/// <summary>
@@ -549,6 +550,11 @@ namespace Soso.Net.Behaviors
 		private void HandleDespawnMessage(DespawnCommand cmd)
 		{
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received despawn command. Id: {Id}", cmd.Id);
+			
+			// We sent it and have already deleted it
+			var source = cmd.SourceId;
+			if (source == SessionId) return;
+			
 			DestroyInstance(cmd.Id);
 		}
 		
