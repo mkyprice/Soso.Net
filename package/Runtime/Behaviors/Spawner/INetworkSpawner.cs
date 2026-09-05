@@ -59,7 +59,7 @@ namespace Soso.Net.Behaviors
 			_idGenerator = new NetworkIdGenerator(SessionId);
 			_serverObjectIdGenerator = new NetworkIdGenerator(0);
 			
-			if (CreateInstanceData(null, this, NetworkInstanceId.Spawner) == null)
+			if (_instances.ContainsKey(InstanceId) == false && CreateInstanceData(null, this, NetworkInstanceId.Spawner) == null)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not register {name}", name);
 			}
@@ -171,9 +171,10 @@ namespace Soso.Net.Behaviors
 
 		public IEnumerable<NetworkInstanceData> GetInstancesInScene(Scene scene)
 		{
+			var sceneId = scene.GetNetworkId();
 			foreach (var instance in new List<NetworkInstanceData>(_instances.Values))
 			{
-				if (instance.Identity&& instance.Identity.gameObject.scene == scene)
+				if (instance.Id.SceneId == sceneId)
 				{
 					yield return instance;
 				}
