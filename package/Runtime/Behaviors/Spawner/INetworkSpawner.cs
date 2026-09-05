@@ -218,25 +218,17 @@ namespace Soso.Net.Behaviors
 
 		protected bool DeleteData(NetworkInstanceId id, out NetworkInstanceData data)
 		{
-			if (_instances.TryGetValue(id, out data))
-			{
-				return DeleteData(data);
-			}
-			return false;
-		}
-		
-		private bool DeleteData(NetworkInstanceData instance)
-		{
-			var id = instance.Identity.InstanceId;
 			var owner = id.SessionId;
-			if (_instances.Remove(instance.Identity.InstanceId) 
-			    && _owners.TryGetValue(owner, out var ownerIds) 
-			    && ownerIds.Remove(id))
+			bool removeInst = _instances.Remove(id, out data);
+			bool removedOwner = _owners.TryGetValue(owner, out var ownerIds)
+			                    && ownerIds.Remove(id);
+			if (removeInst && removedOwner)
 			{
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Successfully deleted instance {id} | {type}", id, ToString(instance.Type));
-				OnInstanceDespawned?.Invoke(instance);
+				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Successfully deleted instance {id} | {type}", id, ToString(data.Type));
+				OnInstanceDespawned?.Invoke(data);
 				return true;
 			}
+			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to delete instance {id}. Inst delete: {id} Owner delete: {od}", id, removeInst, removedOwner);
 			return false;
 		}
 
