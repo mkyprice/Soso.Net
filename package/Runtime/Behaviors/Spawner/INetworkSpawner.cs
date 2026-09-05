@@ -91,7 +91,7 @@ namespace Soso.Net.Behaviors
 		{
 			foreach (var instance in GetInstancesInScene(scene))
 			{
-				DestroyInstance(instance.Identity.InstanceId);
+				DestroyInstance(instance.Id);
 			}
 			
 			// Cleanup pool
@@ -113,19 +113,7 @@ namespace Soso.Net.Behaviors
 		
 		protected virtual void OnSceneUnloaded(Scene scene)
 		{
-			var sceneId = scene.GetNetworkId();
-			foreach (var instanceData in new List<NetworkInstanceData>(_instances.Values))
-			{
-				if (instanceData.Id.SceneId == sceneId)
-				{
-					if (instanceData.Identity && instanceData.Identity.gameObject.isStatic)
-					{
-						continue;
-					}
-					NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Unloading {inst} from spawner data ({type})", instanceData, ToString(instanceData.Type));
-					DeleteData(instanceData);
-				}
-			}
+			Clear(scene);
 		}
 
 		#endregion
