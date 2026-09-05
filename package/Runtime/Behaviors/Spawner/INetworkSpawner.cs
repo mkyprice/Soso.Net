@@ -262,7 +262,7 @@ namespace Soso.Net.Behaviors
 			
 			if (instance.InstanceId == 0)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Identity {name} has a default ID. Not despawning", instance.gameObject.name);
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Identity {name} has a default ID. Not despawning", instance);
 				return;
 			}
 			
@@ -275,7 +275,7 @@ namespace Soso.Net.Behaviors
 			};
 			Send(cmd, 0);
 			
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning {name} with Id: {Id}", instance?.gameObject?.name, id);
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning {name} with Id: {Id}", instance, id);
 		}
 		
 		/// <summary>
