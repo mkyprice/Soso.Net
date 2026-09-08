@@ -421,7 +421,6 @@ namespace Soso.Net.Behaviors
 			// Rpc(RpcSpawn, cmd);
 
 			Send(cmd, 0);
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Spawning {type} with Id: {Id}", ToString(typeValue), id);
 			
 			InitializeIdentity(typeValue, instance, id);
 

@@ -200,6 +200,7 @@ namespace Soso.Net.Behaviors
 				return;
 			}
 			message.SourceInstance = InstanceId;
+			message.Time = NetworkTime.LocalTime;
 			Network.Broadcast(InstanceId, message, channel);
 		}
 

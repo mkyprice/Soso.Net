@@ -74,16 +74,6 @@ namespace Soso.Net.Behaviors
 
 		public void Broadcast(NetworkInstanceId instanceId, INetworkMessage data, ushort channel)
 		{
-			// NetworkMessage message = new NetworkMessage()
-			// {
-			// 	SourceInstance = instanceId,
-			// 	Destination = destination,
-			// 	SendType = sendType,
-			// 	Time = NetworkTime.LocalTime,
-			// 	SyncTime = syncTime,
-			// 	Data = data,
-			// 	Channel = channel,
-			// };
 			_sendQueue.EnqueueBack(data);
 		}
 
