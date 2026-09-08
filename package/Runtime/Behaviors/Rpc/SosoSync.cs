@@ -14,6 +14,9 @@ namespace Soso.Net.Behaviors.Rpc
     public class SosoSync<T> : ISosoSync
         where T : unmanaged
     {
+        /// <summary>
+        /// Old value, New value
+        /// </summary>
         public Action<T, T> OnChanged;
         public bool SyncTime;
         public T Value

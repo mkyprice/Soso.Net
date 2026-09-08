@@ -326,6 +326,10 @@ namespace Soso.Net.Behaviors.Rpc
 						handler.Method.Name, rpc.Method, e.Message, e.StackTrace);
 				}
 			}
+			else
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "RPC {id} not found on target {target}", rpc.SourceId, Target);
+			}
 		}
 		public void Process(SyncCall sync)
 		{
@@ -335,7 +339,7 @@ namespace Soso.Net.Behaviors.Rpc
 			}
 			else
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not set {v} for sync {id}", sync.Arg, sync.SyncId);
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Sync ID {id} not found on target {target}", sync.SyncId, Target);
 			}
 		}
 	}

@@ -26,10 +26,12 @@ namespace Soso.Net.Behaviors.Rpc
 		    RpcTarget targetRpc = new RpcTarget(target, targetId, this);
 		    _targets[targetId] = targetRpc;
 	    }
+	    
 	    public void RemoveTarget(ushort id)
 	    {
 		    _targets.Remove(id);
 	    }
+	    
 	    public void Clear()
 	    {
 		    _targets.Clear();
@@ -39,7 +41,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_targets.TryGetValue(rpc.TargetId, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "RPC: {rpc} ({id}) target not found", rpc.TargetId, rpc.Method);
+				NetworkLogger.Error(CHANNEL.Default, "RPC: Target({rpc}) not found. RPC method: {method}", rpc.TargetId, rpc.Method);
 				return;
 			}
 			targetHandler.Process(rpc);
@@ -49,7 +51,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_targets.TryGetValue(sync.TargetId, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "SYNC: {sync} ({id}) target not found", sync.TargetId, sync.SyncId);
+				NetworkLogger.Error(CHANNEL.Default, "SYNC: Target({rpc}) not found. Sync ID: {sync}", sync.TargetId, sync.SyncId);
 				return;
 			}
 			targetHandler.Process(sync);
