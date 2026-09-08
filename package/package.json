@@ -1,6 +1,6 @@
 {
   "name": "com.chronicvagrant.soso-net",
-  "version": "1.2.10",
+  "version": "1.2.11",
   "displayName": "Soso.Net",
   "description": "A Unity networking solution",
   "unity": "6000.3",

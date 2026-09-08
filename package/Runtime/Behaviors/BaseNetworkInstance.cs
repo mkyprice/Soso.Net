@@ -320,7 +320,7 @@ namespace Soso.Net.Behaviors
 
 		#region RPC Functions
 		
-		[SosoRpc(RPC_CALL_TYPE.Client, false, true)]
+		[SosoRpc(RPC_CALL_TYPE.Client, true, true)]
 		private void RpcAddComponent(string typeName)
 		{
 			Type type = Type.GetType(typeName);
