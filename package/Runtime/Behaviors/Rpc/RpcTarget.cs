@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Soso.Net.Behaviors.Rpc
 {
-	public readonly struct RpcTarget
+	public class RpcTarget
 	{
 		public readonly object Target;
 		public readonly ushort TargetId;
@@ -28,7 +28,8 @@ namespace Soso.Net.Behaviors.Rpc
 				sync.Initialize(this, syncId);
 				syncId++;
 			}
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Created RPC target for {target}({id}). RPCs: {rpcCount}, Syncs: {syncCount}", Target.GetType().Name, TargetId, _container.Count, _syncs.Count);
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Created {name} for {target}({id}). RPCs: {rpcCount}, Syncs: {syncCount}", 
+				nameof(RpcTarget), Target.GetType().Name, TargetId, _container.Count, _syncs.Count);
 		}
 
 		public void SetSync<T>(SosoSync<T> sync, T value) 

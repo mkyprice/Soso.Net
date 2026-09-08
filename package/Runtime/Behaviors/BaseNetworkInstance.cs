@@ -139,7 +139,7 @@ namespace Soso.Net.Behaviors
 		public T AddComponent<T>() 
 			where T : INetworkReceiver
 		{
-			Rpc(RpcAddComponent, MY_RPC_RECEIVER_ID, typeof(T).AssemblyQualifiedName);
+			Rpc(RpcAddComponent, typeof(T).AssemblyQualifiedName);
 			return GetComponent<T>();
 		}
 
@@ -275,28 +275,10 @@ namespace Soso.Net.Behaviors
 
 		#region RPC
 		
-		protected void Rpc(Action function) => Rpc(function, MY_RPC_RECEIVER_ID);
-		protected void Rpc<T>(Action<T> function, T arg0) => Rpc(function, MY_RPC_RECEIVER_ID, arg0);
-		protected void Rpc<T0, T1>(Action<T0, T1> function, T0 arg0, T1 arg1) => Rpc(function, MY_RPC_RECEIVER_ID, arg0, arg1);
-		protected void Rpc<T0, T1, T2>(Action<T0, T1, T2> function, T0 arg0, T1 arg1, T2 arg2) => Rpc(function, MY_RPC_RECEIVER_ID, arg0, arg1, arg2);
-		
-		public void Rpc(Action function, ushort id)
-			=> _rpc.Rpc(function, id);
-
-		public void Rpc<T>(Action<T> function, ushort id, T arg0)
-			=> _rpc.Rpc(function, id, arg0);
-
-		public void Rpc<T0, T1>(Action<T0, T1> function, ushort id, T0 arg0, T1 arg1)
-			=> _rpc.Rpc(function, id, arg0, arg1);
-
-		public void Rpc<T0, T1, T2>(Action<T0, T1, T2> function, ushort id, T0 arg0, T1 arg1, T2 arg2)
-			=> _rpc.Rpc(function, id, arg0, arg1, arg2);
-
-		public void Rpc<T0, T1, T2, T3>(Action<T0, T1, T2, T3> function, ushort id, T0 arg0, T1 arg1, T2 arg2, T3 arg3)
-			=> _rpc.Rpc(function, id, arg0, arg1, arg2, arg3);
-
-		public void Rpc<T0, T1, T2, T3, T4>(Action<T0, T1, T2, T3, T4> function, ushort id, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
-			=> _rpc.Rpc(function, id, arg0, arg1, arg2, arg3, arg4);
+		protected void Rpc(Action function) => _rpc.Rpc(function, MY_RPC_RECEIVER_ID);
+		protected void Rpc<T>(Action<T> function, T arg0) => _rpc.Rpc(function, MY_RPC_RECEIVER_ID, arg0);
+		protected void Rpc<T0, T1>(Action<T0, T1> function, T0 arg0, T1 arg1) => _rpc.Rpc(function, MY_RPC_RECEIVER_ID, arg0, arg1);
+		protected void Rpc<T0, T1, T2>(Action<T0, T1, T2> function, T0 arg0, T1 arg1, T2 arg2) => _rpc.Rpc(function, MY_RPC_RECEIVER_ID, arg0, arg1, arg2);
 
 		#endregion
 
