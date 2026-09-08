@@ -107,6 +107,12 @@ namespace Soso.Net.Behaviors
 				NetworkInstanceId target = message.SourceInstance;
 				if (INetworkManager.GetSpawner().TryGetIdentity(target, out var instance) == false)
 				{
+					// We cannot find the instance but the message is also early. Let's wait a bit
+					if (message.Time > NetworkTime.LocalTime - SendInterval)
+					{
+						_receiveQueue.EnqueueFront(message);
+						break;
+					}
 					NetworkLogger.Error(CHANNEL.Default, "Identity {id} is not ready for incoming message {msg}", target, message);
 					// _receiveQueue.EnqueueFront(message);
 					break;

@@ -204,74 +204,6 @@ namespace Soso.Net.Behaviors
 			Network.Broadcast(InstanceId, message, channel);
 		}
 
-		private void Send<T>(T data, ushort channel, bool syncTime, DESTINATION destination, SOSO_SEND_TYPE sendType = SOSO_SEND_TYPE.Reliable)
-		{
-			var message = new NetworkMessage()
-			{
-				SourceInstance = InstanceId,
-				Time = NetworkTime.LocalTime,
-				Channel = channel,
-				Data = data,
-				SendType = sendType,
-				SyncTime = syncTime,
-				Destination = destination
-			};
-			Send(message, channel);
-		}
-		
-		private async void StartMessageThread()
-		{
-			_cancellationTokenSource = new CancellationTokenSource();
-			try
-			{
-				await RunMessageThread(_cancellationTokenSource.Token);
-			}
-			catch (OperationCanceledException e)
-			{
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Message loop was closed for {name} with message {m}", gameObject ? gameObject.name : nameof(NetworkIdentity), e.Message);
-			}
-			catch (Exception e)
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Message thread encountered a error: {e}\nTrace: {trace}", e.Message, e.StackTrace);
-			}
-		}
-
-		private void CancelMessageThread()
-		{
-			_cancellationTokenSource?.Cancel();
-		}
-		
-		private async Awaitable RunMessageThread(CancellationToken token)
-		{
-			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Starting message thread for {name}:{id}", name, InstanceId);
-			while (true)
-			{
-				token.ThrowIfCancellationRequested();
-				
-				if (_isInitialized)
-				{
-					if (_timedReceiveQueue.TryDequeueFirst(out var message, token) && message != null)
-					{
-						float messageWait = (float)(message.Time - NetworkTime.LocalTime);
-						if (messageWait > 0f)
-						{
-							NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Waiting for {wait}s", messageWait);
-							await Awaitable.WaitForSecondsAsync(messageWait, token);
-						}
-						HandleMessage(message);
-					}
-					else
-					{
-						await Awaitable.NextFrameAsync(token);
-					}
-				}
-				else
-				{
-					await Awaitable.NextFrameAsync(token);
-				}
-			}
-		}
-
 		#endregion
 
 		#region RPC
@@ -287,7 +219,6 @@ namespace Soso.Net.Behaviors
 
 		protected void ResetInstance()
 		{
-			CancelMessageThread();
 			_isInitialized = false;
 			InstanceId = default;
 			_remoteInfo = null;
