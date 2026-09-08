@@ -13,6 +13,7 @@ namespace Soso.Net.Behaviors.Rpc
         private readonly Dictionary<MethodInfo, int> _methodToKey = new Dictionary<MethodInfo, int>();
         private readonly List<FieldInfo> _sosoSyncs = new List<FieldInfo>();
         
+        public int Count => _rpcCalls.Count;
         public bool HasMethod(int methodId) => _rpcCalls.ContainsKey(methodId);
         public bool TryGetValue(int methodId, out RpcMethod rpc) => _rpcCalls.TryGetValue(methodId, out rpc);
 
@@ -91,6 +92,7 @@ namespace Soso.Net.Behaviors.Rpc
             foreach (var syncProp in GetAllMatchingFields(type, typeof(SosoSync<>), flags))
             {
                 cache.AddSosoSync(syncProp);
+                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Caching SosoSync {m}", syncProp.Name);
             }
             
             return cache;
@@ -112,7 +114,7 @@ namespace Soso.Net.Behaviors.Rpc
         {
             while (type != null)
             {
-                foreach (var method in type.GetFields())
+                foreach (var method in type.GetFields(flags))
                 {
                     if (method.FieldType.IsGenericType && method.FieldType.GetGenericTypeDefinition() == genericType)
                     {

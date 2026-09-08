@@ -7,7 +7,7 @@ namespace Soso.Net.Behaviors.Rpc
     internal interface ISosoSync
     {
         public bool IsDirty();
-        public void Initialize(RpcTarget target, int id);
+        public void Initialize(RpcTarget target, byte id);
         public void SetInternal(object value);
     }
 
@@ -25,12 +25,12 @@ namespace Soso.Net.Behaviors.Rpc
             set => Set(value);
         }
 
-        public int Id => _id;
+        public byte Id => _id;
         
         private RpcTarget _target;
         private T _value;
         private T _dirtyValue;
-        private int _id;
+        private byte _id;
         private bool _isDirty = false;
 
         /// <summary>
@@ -84,7 +84,7 @@ namespace Soso.Net.Behaviors.Rpc
             _isDirty = false;
         }
 
-        public void Initialize(RpcTarget target, int id)
+        public void Initialize(RpcTarget target, byte id)
         {
             _target = target;
             _id = id;

@@ -21,13 +21,14 @@ namespace Soso.Net.Behaviors.Rpc
 			_manager = manager;
 			_container = RpcContainer.Get(target.GetType());
 			_syncs = new Dictionary<int, ISosoSync>();
-			int syncId = 0;
+			byte syncId = 0;
 			foreach (var sync in _container.GetSosoSyncs(Target))
 			{
 				_syncs[syncId] = sync;
 				sync.Initialize(this, syncId);
 				syncId++;
 			}
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Created RPC target for {target}({id}). RPCs: {rpcCount}, Syncs: {syncCount}", Target.GetType().Name, TargetId, _container.Count, _syncs.Count);
 		}
 
 		public void SetSync<T>(SosoSync<T> sync, T value) 
@@ -47,7 +48,7 @@ namespace Soso.Net.Behaviors.Rpc
 				SyncTime = sync.SyncTime,
 				Time = NetworkTime.LocalTime,
 				
-				TargetId = TargetId,
+				TargetId = this.TargetId,
 				SyncId = sync.Id,
 				Arg = value,
 			};

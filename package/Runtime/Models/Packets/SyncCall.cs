@@ -13,7 +13,7 @@ namespace Soso.Net.Models.Packets
         
         // Sync
         public ushort TargetId;
-        public int SyncId;
+        public byte SyncId;
         public object Arg;
 
         public class Serializer : SosoSerializer<SyncCall>
