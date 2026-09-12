@@ -241,11 +241,12 @@ namespace Soso.Net.Behaviors
 		/// Despawn identity across all clients
 		/// </summary>
 		/// <param name="go"></param>
-		public void Despawn(GameObject go)
+		/// <param name="syncTime"></param>
+		public void Despawn(GameObject go, bool syncTime = true)
 		{
 			if (go.TryGetComponent(out NetworkIdentity instance))
 			{
-				Despawn(instance);
+				Despawn(instance, syncTime);
 			}
 			else
 			{
@@ -257,7 +258,8 @@ namespace Soso.Net.Behaviors
 		/// Despawn identity across all clients
 		/// </summary>
 		/// <param name="instance"></param>
-		public void Despawn(NetworkIdentity instance)
+		/// <param name="syncTime"></param>
+		public void Despawn(NetworkIdentity instance, bool syncTime = true)
 		{
 			var id = instance.InstanceId;
 			
@@ -273,6 +275,7 @@ namespace Soso.Net.Behaviors
 			{
 				Id = id,
 				SourceId = SessionId,
+				SyncTime = syncTime,
 			};
 			Send(cmd, 0);
 			
@@ -390,7 +393,7 @@ namespace Soso.Net.Behaviors
 			return Spawn(scene, typeValue, position, rotation);
 		}
 		
-		public NetworkIdentity Spawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation)
+		public NetworkIdentity Spawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation, bool syncTime = true)
 		{
 			var instance = InstantiateIdentity(scene, typeValue, position, rotation);
 
@@ -415,6 +418,7 @@ namespace Soso.Net.Behaviors
 				SpawnType = typeValue,
 				Position = position,
 				Rotation = rotation,
+				SyncTime = syncTime,
 			};
 
 			// Send message before initialization (very important)

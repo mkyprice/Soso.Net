@@ -17,7 +17,7 @@ namespace Soso.Net.Models.Packets
 			set { }
 		}
 		public double Time { get; set; }
-		public bool SyncTime => true;
+		public bool SyncTime { get; set; }
 		public int SpawnType;
 		public NetworkInstanceId Id;
 		public Vector3 Position;
