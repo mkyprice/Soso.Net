@@ -58,7 +58,7 @@ namespace Soso.Net.Components.PredictedBodies
         {
             while (_receivedStates.TryDequeue(out var receivedState))
             {
-                bool applied = false;
+                RigidBody2DState stateToApply = receivedState;
                 foreach (var kvp in _myStates)
                 {
                     var time = kvp.Key;
@@ -67,26 +67,24 @@ namespace Soso.Net.Components.PredictedBodies
                     {
                         if (HasChanged(receivedState, state))
                         {
-                            ApplyState(receivedState);
-                            applied = true;
+                            stateToApply = state;
                         }
                         break;
                     }
                 }
 
-                if (applied == false)
-                {
-                    ApplyState(receivedState);
-                }
+                ApplyState(stateToApply);
             }
         }
 
         private void ApplyState(RigidBody2DState state)
         {
-            Rb.linearVelocity = state.Velocity;
-            Rb.angularVelocity = state.AngularVelocity;
+            Rb.bodyType = RigidbodyType2D.Kinematic;
             _transform.position = state.Position;
             _transform.rotation = state.Rotation;
+            Rb.bodyType = RigidbodyType2D.Dynamic;
+            Rb.linearVelocity = state.Velocity;
+            Rb.angularVelocity = state.AngularVelocity;
 
             // Rb.SyncTransform();
         }

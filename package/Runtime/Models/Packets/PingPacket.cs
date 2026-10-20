@@ -8,7 +8,7 @@ namespace Soso.Net.Models.Packets
     public struct PingPacket
     {
         public ushort SourceId;
-        public double SendTime;
+        public double LocalTimeSec;
         public long RealtimeSendTicks;
         
         public class Serializer : ISerializer<PingPacket>

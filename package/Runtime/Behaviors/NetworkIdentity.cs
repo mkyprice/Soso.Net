@@ -11,6 +11,7 @@ namespace Soso.Net.Behaviors
 	{
 		[SerializeField] public bool IsServerAuthority;
 		[SerializeField] public bool IsClientAuthority;
+		[SerializeField] public NetworkInstanceId BakedId;
 		
 		public override bool IsOwner
 		{
@@ -26,7 +27,7 @@ namespace Soso.Net.Behaviors
 #if UNITY_EDITOR
 		public void BakeSceneId(ulong sequenceNumber)
 		{
-			InstanceId = new NetworkInstanceId(0, gameObject.scene.GetNetworkId(), sequenceNumber);
+			BakedId = new NetworkInstanceId(0, gameObject.scene.GetNetworkId(), sequenceNumber);
 			EditorUtility.SetDirty(this);
 		}
 #endif
@@ -42,7 +43,7 @@ namespace Soso.Net.Behaviors
 
 		private void OnDestroy()
 		{
-			if (IsOwner && InstanceId != 0 && gameObject.scene.isLoaded)
+			if (InstanceId != NetworkInstanceId.Invalid && IsOwner && gameObject.scene.isLoaded)
 			{
 				INetworkManager.GetSpawner()?.Despawn(this);
 			}
@@ -50,7 +51,7 @@ namespace Soso.Net.Behaviors
 		
 		public override void Despawn()
 		{
-			if (InstanceId == 0)
+			if (InstanceId == NetworkInstanceId.Invalid)
 			{
 				NetworkLogger.Error(CHANNEL.Default, "{name} was not initialized", gameObject.name);
 				return;
@@ -60,7 +61,7 @@ namespace Soso.Net.Behaviors
 		
 		public override void DespawnLocal()
 		{
-			if (InstanceId == 0)
+			if (InstanceId == NetworkInstanceId.Invalid)
 			{
 				NetworkLogger.Error(CHANNEL.Default, "{name} was not initialized", gameObject.name);
 				return;

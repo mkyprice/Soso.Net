@@ -7,6 +7,7 @@ using Soso.Net.Objects;
 using Soso.Utils.Concurrency;
 using System;
 using System.Collections.Concurrent;
+using Soso.Net.Core;
 using UnityEngine;
 using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
@@ -32,11 +33,6 @@ namespace Soso.Net.Behaviors
 		public double TimeAdjustment => SendInterval + TimelineOffset;
 		
 		private SosoConcurrentQueue<INetworkMessage> _sendQueue = new SosoConcurrentQueue<INetworkMessage>();
-
-		/// <summary>
-		/// Ready to go messages
-		/// </summary>
-		private SosoConcurrentQueue<INetworkMessage> _receiveQueue = new SosoConcurrentQueue<INetworkMessage>();
 		private double _lastSendTime;
 		private double _lastPingTime;
 		private bool _isInitialized = false;
@@ -47,9 +43,9 @@ namespace Soso.Net.Behaviors
 			{
 				return;
 			}
-			_isInitialized = true;
 			if (Network.IsOffline)
 			{
+				_isInitialized = true;
 				NetworkLogger.Warn(CHANNEL.Default, "You are offline. No messages will be processed");
 				return;
 			}
@@ -60,6 +56,8 @@ namespace Soso.Net.Behaviors
 
 			Network.ClientProcessor.Subscribe<NetworkPacket>(0, OnClientNetworkMessageReceived);
 			Network.ServerProcessor.Subscribe<NetworkPacket>(0, OnServerNetworkMessageReceived);
+			
+			_isInitialized = true;
 		}
 
 		public void Shutdown()
@@ -97,61 +95,21 @@ namespace Soso.Net.Behaviors
 					_sendQueue.Clear();
 
 					NetworkLogger.Debug(CHANNEL.Default, "Sending {count} messages in packet", packet.Messages.Length);
-					SendToServer(packet, 0, SOSO_SEND_TYPE.Reliable);
+					// Send to server
+					Network.Send(packet, 0, SOSO_SEND_TYPE.Reliable);
 				}
-			}
-
-			// Unprocessed messages
-			while (_receiveQueue.TryDequeue(out INetworkMessage message))
-			{
-				NetworkInstanceId target = message.SourceInstance;
-				if (INetworkManager.GetSpawner().TryGetIdentity(target, out var instance) == false)
-				{
-					// We cannot find the instance but the message is also early. Let's wait a bit
-					if (message.Time > NetworkTime.LocalTime - SendInterval)
-					{
-						_receiveQueue.EnqueueFront(message);
-						break;
-					}
-					NetworkLogger.Error(CHANNEL.Default, "Identity {id} is not ready for incoming message {msg}", target, message);
-					// _receiveQueue.EnqueueFront(message);
-					break;
-				}
-				instance.AppendMessage(message);
 			}
 		}
 
 		public void Clear()
 		{
 			_sendQueue.Clear();
-			_receiveQueue.Clear();
 		}
 
 		private bool IsSendReady()
 		{
 			double localTime = NetworkTime.LocalTime;
 			return localTime - _lastSendTime >= SendInterval;
-		}
-		
-		private void SendFromServer<T>(T message, int channel, SOSO_SEND_TYPE sendType)
-		{
-			if (Network.IsOffline)
-			{
-				return;
-			}
-			if (IsHost)
-			{
-				Network.Broadcast(message, channel, sendType);
-			}
-		}
-
-		private void SendToServer<T>(T message, int channel, SOSO_SEND_TYPE sendType)
-		{
-			if (Network.IsOffline)
-			{
-				return;
-			}
-			Network.Send(message, channel, sendType);
 		}
 
 		private void ProcessIncomingMessage(RemoteInfo remoteInfo, INetworkMessage message)
@@ -177,15 +135,34 @@ namespace Soso.Net.Behaviors
 			NetworkLogger.Debug(CHANNEL.Default, "Processing message {msg} from {re}", message, remoteInfo);
 			
 			// Enqueue our message
-			_receiveQueue.EnqueueBack(message);
+			NetworkInstanceId target = message.SourceInstance;
+			var instance = INetworkManager.GetInstanceManager().GetOrCreateInstance(target);
+			instance.AppendMessage(message);
 		}
 
 		#region Message Callbacks
 
 		private void OnServerNetworkMessageReceived(NetworkPacket packet, long a, long b, IUserConnection connection)
 		{
+			ServerProcessPacket(packet);
+		}
+
+		private void OnClientNetworkMessageReceived(NetworkPacket packet, long a, long b, IUserConnection connection)
+		{
+			var remoteInfo = NetworkTime.GetRemoteInfo(packet.SourceId);
+			foreach (INetworkMessage message in packet.Messages)
+			{
+				ProcessIncomingMessage(remoteInfo, message);
+			}
+		}
+
+		#endregion
+
+		private void ServerProcessPacket(NetworkPacket packet)
+		{
 			List<INetworkMessage> forwardMessages = new List<INetworkMessage>();
 			var remoteInfo = NetworkTime.GetRemoteInfo(packet.SourceId);
+
 			foreach (INetworkMessage message in packet.Messages)
 			{
 				if (message.Destination == DESTINATION.Client)
@@ -204,19 +181,9 @@ namespace Soso.Net.Behaviors
 				forwardPacket.SourceId = packet.SourceId;
 				forwardPacket.Messages = forwardMessages.ToArray();
 				forwardPacket.SendTime = packet.SendTime;
-				SendFromServer(forwardPacket, 0, SOSO_SEND_TYPE.Reliable);
+				
+				Network.Broadcast(forwardPacket, 0, SOSO_SEND_TYPE.Reliable);
 			}
 		}
-
-		private void OnClientNetworkMessageReceived(NetworkPacket packet, long a, long b, IUserConnection connection)
-		{
-			var remoteInfo = NetworkTime.GetRemoteInfo(packet.SourceId);
-			foreach (INetworkMessage message in packet.Messages)
-			{
-				ProcessIncomingMessage(remoteInfo, message);
-			}
-		}
-
-		#endregion
 	}
 }

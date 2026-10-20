@@ -15,6 +15,9 @@ namespace Soso.Net
         private static double _lastPingTime;
 
         public static float PingInterval = 0.5f;
+        /// <summary>
+        /// Seconds since game start
+        /// </summary>
         public static double LocalTime => Time.unscaledTimeAsDouble;
         
         private static Dictionary<ushort, RemoteInfo> ConnectionInfo = new Dictionary<ushort, RemoteInfo>();
@@ -48,9 +51,9 @@ namespace Soso.Net
             var session = INetworkManager.SessionInfo;
             PingPacket ping = new PingPacket();
             ping.SourceId = session.SessionId;
-            ping.SendTime = _lastPingTime;
+            ping.LocalTimeSec = _lastPingTime;
             ping.RealtimeSendTicks = DateTimeOffset.UtcNow.Ticks;
-            NetworkLogger.Debug(CHANNEL.Default, "Sending ping with id {id} and time {time}", ping.SourceId, ping.SendTime);
+            NetworkLogger.Debug(CHANNEL.Default, "Sending ping with id {id} and time {time}", ping.SourceId, ping.LocalTimeSec);
             INetworkManager.GetInstance().Send(ping, 0, SOSO_SEND_TYPE.Reliable);
         }
         
@@ -77,7 +80,10 @@ namespace Soso.Net
         
         public static double ToLocalTime(RemoteInfo info, double remoteTime)
         {
-            return remoteTime + info.TimeDifference + info.Ping + TimeAdjustment;
+            return remoteTime 
+                   + info.TimeDifference 
+                   + info.Ping * 0.001 // Convert to seconds
+                   + TimeAdjustment;
         }
         
         private static void OnClientPingMessageReceived(PingPacket packet, long arg2, long arg3, IUserConnection connection)
@@ -90,36 +96,39 @@ namespace Soso.Net
 
             double localTime = LocalTime;
             long realtimeReceived = DateTimeOffset.UtcNow.Ticks;
-            long delayTicks = realtimeReceived - packet.RealtimeSendTicks;
-            double secondsDelay = TimeSpan.FromTicks(delayTicks).TotalSeconds;
+            long pingTicks = realtimeReceived - packet.RealtimeSendTicks;
+            double pingSeconds = TimeSpan.FromTicks(pingTicks).TotalSeconds;
+            double ping = pingSeconds * 1000; // MS
             
             if (ConnectionInfo.TryGetValue(source, out var info) == false)
             {
                 info = new RemoteInfo()
                 {
                     SessionId = source,
-                    RemoteTime = packet.SendTime,
-                    TimeDifference = localTime - packet.SendTime - secondsDelay,
+                    RemoteTime = packet.LocalTimeSec,
+                    TimeDifference = localTime - packet.LocalTimeSec - pingSeconds,
                 };
                 ConnectionInfo.Add(source, info);
             }
 			
             // Sync remote time to our time
-            double timeAdjustment = packet.SendTime + info.TimeDifference;
-            double remoteTime = timeAdjustment;
-            
-            // Calulate ping
-            double ping = secondsDelay;//remoteTime - (info.LastPingTime + PingInterval);
+            double remoteTime = packet.LocalTimeSec
+                + info.TimeDifference 
+                - pingSeconds; // Pretty sure we should sub ping
             
             // Set remote info
-            info.Ping = ping;
+            info.AddPingTime(ping);
             info.RemoteTime = remoteTime;
-            info.LastPingTime = info.RemoteTime;
+            info.LastPingTime = localTime;
             
             // Give our info
-            foreach (var identity in INetworkManager.GetSpawner().GetOwnedIdentities(source))
+            var instances = INetworkManager.GetInstanceManager();
+            if (instances != null)
             {
-                identity.SetRemoteInfo(info);
+                foreach (var instance in instances.GetOwnedInstances(source))
+                {
+                    instance.SetRemoteInfo(info);
+                }
             }
         }
 

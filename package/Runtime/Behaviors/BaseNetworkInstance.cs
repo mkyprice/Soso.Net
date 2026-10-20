@@ -7,6 +7,7 @@ using Soso.Utils.Concurrency;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Soso.Net.Objects;
 using UnityEngine;
 
 namespace Soso.Net.Behaviors
@@ -14,25 +15,15 @@ namespace Soso.Net.Behaviors
 	public abstract class BaseNetworkInstance : MonoBehaviour, INetworkPoolable
 	{
 		[Header("DEBUG DO NOT MODIFY")]
-		[SerializeField] public NetworkInstanceId InstanceId;
-		public RemoteInfo RemoteInfo
-		{
-			get
-			{
-				if (_remoteInfo == null)
-				{
-					_remoteInfo = NetworkTime.GetRemoteInfo(OwnerId);
-				}
-				return _remoteInfo;
-			}
-		}
-		private RemoteInfo _remoteInfo;
+
+		[SerializeField] public NetworkInstance Instance;
+		public NetworkInstanceId InstanceId => Instance?.Id ?? NetworkInstanceId.Invalid;
+		public RemoteInfo RemoteInfo => Instance.RemoteInfo;
 
 		public ushort OwnerId => InstanceId.SessionId;
 		public ulong Sequence => InstanceId.SequenceNumber;
-		
-		public double RemoteTime => _remoteInfo?.RemoteTime ?? 0;
-		public double Ping => _remoteInfo?.Ping ?? 0;
+		public double RemoteTime => RemoteInfo.RemoteTime;
+		public double Ping => RemoteInfo.Ping;
 
 		public bool IsServer
 		{
@@ -55,18 +46,17 @@ namespace Soso.Net.Behaviors
 		private RpcManager _rpc;
 		private NetworkController _networkController;
 		private List<INetworkReceiver> _receivers;
-		private SosoConcurrentSortedQueue<double, INetworkMessage> _timedReceiveQueue = new SosoConcurrentSortedQueue<double, INetworkMessage>();
 		private bool _isInitialized = false;
 		private CancellationTokenSource _cancellationTokenSource;
 		
-		internal void Initialize(NetworkInstanceId instanceId)
+		internal void Initialize(NetworkInstance instance)
 		{
 			if (_isInitialized)
 			{
 				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} was already initialized", name);
 				return;
 			}
-			InstanceId = instanceId;
+			Instance = instance;
 			_networkController = INetworkManager.GetInstance().Network;
 			_rpc = new RpcManager(IsOwner, Send);
 			_rpc.AddTarget(this, MY_RPC_RECEIVER_ID);
@@ -86,18 +76,7 @@ namespace Soso.Net.Behaviors
 		{
 			if (false == _isInitialized) return;
 			
-			if (_timedReceiveQueue.TryDequeueFirst(out var message) && message != null)
-			{
-				float messageWait = (float)(message.Time - NetworkTime.LocalTime);
-				if (messageWait > 0.001f)
-				{
-					// Place message back in the queue
-					_timedReceiveQueue.Add(message.Time, message);
-					NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Waiting for {wait}s", messageWait);
-					return;
-				}
-				HandleMessage(message);
-			}
+			Instance.Update();
 		}
 
 		#region Receivers
@@ -142,36 +121,12 @@ namespace Soso.Net.Behaviors
 			Rpc(RpcAddComponent, typeof(T).AssemblyQualifiedName);
 			return GetComponent<T>();
 		}
-
-		internal void SetRemoteInfo(RemoteInfo remote)
-		{
-			_remoteInfo = remote;
-		}
-
 		#endregion
 
 		#region Messaging
 		
-		internal void AppendMessage(INetworkMessage incoming)
-		{
-			if (this == false)
-			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} is destroyed. Not processing message", name);
-				return;
-			}
-			if (incoming.SyncTime)
-			{
-				NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} enqueuing message: {message} at time {t} (Local time: {lt})", gameObject.name, incoming, incoming.Time,
-					NetworkTime.LocalTime);
-				_timedReceiveQueue.Add(incoming.Time, incoming);
-			}
-			else
-			{
-				HandleMessage(incoming);
-			}
-		}
 		
-		protected virtual void HandleMessage(INetworkMessage incoming)
+		public virtual void HandleMessage(INetworkMessage incoming)
 		{
 			switch (incoming)
 			{
@@ -220,9 +175,7 @@ namespace Soso.Net.Behaviors
 		protected void ResetInstance()
 		{
 			_isInitialized = false;
-			InstanceId = default;
-			_remoteInfo = null;
-			_timedReceiveQueue.Clear();
+			Instance = null;
 			_receivers?.Clear();
 			_rpc?.Clear();
 			_rpc = null;

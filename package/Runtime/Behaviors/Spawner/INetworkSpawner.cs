@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Soso.Net.Behaviors.Rpc;
@@ -8,6 +9,7 @@ using Soso.Net.Logging;
 using Soso.Net.Models.Packets;
 using Soso.Net.Objects;
 using Soso.Net.Utils;
+using Soso.Utils.Concurrency;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -46,20 +48,20 @@ namespace Soso.Net.Behaviors
 		
 		public void Reset()
 		{
-			DeleteData(NetworkInstanceId.Spawner, out _);
+			INetworkManager.GetInstanceManager().DeleteData(NetworkInstanceId.Spawner, out _);
 			ResetInstance();
 		}
 
 		public void InitializeSpawner()
 		{
-			InstanceId = NetworkInstanceId.Spawner;
 			Network = INetworkManager.GetInstance().Network;
 			SessionId = INetworkManager.GetInstance().Session.Session?.SessionId ?? 0;
 			
 			_idGenerator = new NetworkIdGenerator(SessionId);
 			_serverObjectIdGenerator = new NetworkIdGenerator(0);
-			
-			if (_instances.ContainsKey(InstanceId) == false && CreateInstanceData(null, this, NetworkInstanceId.Spawner) == null)
+
+			if (INetworkManager.GetInstanceManager().InstanceExists(NetworkInstanceId.Spawner) == false
+				&& INetworkManager.GetInstanceManager().SetInstanceIdentity(null, this, NetworkInstanceId.Spawner) == false)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not register {name}", name);
 			}
@@ -89,7 +91,7 @@ namespace Soso.Net.Behaviors
 
 		public virtual void Clear(Scene scene)
 		{
-			foreach (var instance in GetInstancesInScene(scene))
+			foreach (var instance in INetworkManager.GetInstanceManager().GetInstancesInScene(scene))
 			{
 				DestroyInstance(instance.Id);
 			}
@@ -114,123 +116,6 @@ namespace Soso.Net.Behaviors
 		protected virtual void OnSceneUnloaded(Scene scene)
 		{
 			Clear(scene);
-		}
-
-		#endregion
-
-		#region Instance Management
-		
-		public Action<NetworkInstanceData> OnInstanceSpawned;
-		public Action<NetworkInstanceData> OnInstanceDespawned;
-		
-		/// <summary>
-		/// <OwnerId, InstanceId[]>
-		/// </summary>
-		private Dictionary<ushort, HashSet<NetworkInstanceId>> _owners = new Dictionary<ushort, HashSet<NetworkInstanceId>>();
-		private Dictionary<NetworkInstanceId, NetworkInstanceData> _instances = new Dictionary<NetworkInstanceId, NetworkInstanceData>();
-		
-		public bool TryGetIdentity(NetworkInstanceId id, out BaseNetworkInstance identity)
-		{
-			if (_instances.TryGetValue(id, out var instance))
-			{
-				identity = instance.Identity;
-				return true;
-			}
-			identity = null;
-			return false;
-		}
-
-		public bool InstanceExists(NetworkInstanceId id) => _instances.ContainsKey(id);
-
-		public NetworkInstanceData? CreateInstanceData(int? type, BaseNetworkInstance identity, NetworkInstanceId id)
-		{
-			var instanceId = id;
-			var ownerId = instanceId.SessionId;
-			if (_instances.TryGetValue(instanceId, out var existingInstance))
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to spawn {inst} ({type}). Behavior already exists with id {id}.\nExisting instance: {exist}", 
-					identity.gameObject.name,ToString(type), instanceId, existingInstance.Identity.gameObject.name);
-				return null;
-			}
-			var instance = new NetworkInstanceData(type, identity, instanceId);
-			_instances.Add(instanceId, instance);
-
-			if (_owners.TryGetValue(ownerId, out var ids) == false)
-			{
-				ids = new HashSet<NetworkInstanceId>();
-				_owners.Add(ownerId, ids);
-			}
-			ids.Add(instanceId);
-
-			identity.Initialize(instanceId);
-			
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Created instance {name}[{instanceId}]", identity.name, instanceId);
-			
-			return instance;
-		}
-
-		public IEnumerable<NetworkInstanceData> GetInstancesInScene(Scene scene)
-		{
-			var sceneId = scene.GetNetworkId();
-			foreach (var instance in new List<NetworkInstanceData>(_instances.Values))
-			{
-				if (instance.Id.SceneId == sceneId)
-				{
-					yield return instance;
-				}
-			}
-		}
-		
-		public IEnumerable<BaseNetworkInstance> GetOwnedIdentities(ushort sessionId)
-		{
-			foreach (var data in GetOwnedInstances(sessionId))
-			{
-				yield return data.Identity;
-			}
-		}
-
-		public IEnumerable<NetworkInstanceData> GetOwnedInstances(ushort sessionId)
-		{
-			if (_owners.TryGetValue(sessionId, out var ids) == false)
-			{
-				yield break;
-			}
-			foreach (var id in ids)
-			{
-				yield return _instances[id];
-			}
-		}
-
-		public bool TryGetInstance(NetworkInstanceId id, out NetworkInstanceData data)
-		{
-			return _instances.TryGetValue(id, out data);
-		}
-
-		public bool TryGetInstance<T>(NetworkInstanceId id, out T data)
-			where T : Component
-		{
-			if (TryGetIdentity(id, out var identity) && identity.gameObject.TryGetComponent(out data))
-			{
-				return true;
-			}
-			data = null;
-			return false;
-		}
-
-		protected bool DeleteData(NetworkInstanceId id, out NetworkInstanceData data)
-		{
-			var owner = id.SessionId;
-			bool removeInst = _instances.Remove(id, out data);
-			bool removedOwner = _owners.TryGetValue(owner, out var ownerIds)
-			                    && ownerIds.Remove(id);
-			if (removeInst && removedOwner)
-			{
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Successfully deleted instance {id} | {type}", id, ToString(data.Type));
-				OnInstanceDespawned?.Invoke(data);
-				return true;
-			}
-			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to delete instance {id}. Inst delete: {id} Owner delete: {od}", id, removeInst, removedOwner);
-			return false;
 		}
 
 		#endregion
@@ -318,7 +203,7 @@ namespace Soso.Net.Behaviors
 		/// <param name="instanceId"></param>
 		private void DestroyInstance(NetworkInstanceId instanceId)
 		{
-			if (DeleteData(instanceId, out NetworkInstanceData instance) == false)
+			if (INetworkManager.GetInstanceManager().DeleteData(instanceId, out NetworkInstance instance) == false && (instance != null && instance.Identity) == false)
 			{
 				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Failed to delete instance {id}. Instance not found", instanceId);
 				return;
@@ -378,7 +263,7 @@ namespace Soso.Net.Behaviors
 		
 		public void RegisterStaticInstance(NetworkIdentity identity)
 		{
-			NetworkInstanceId instanceId = identity.InstanceId;
+			NetworkInstanceId instanceId = identity.BakedId;
 			InitializeIdentity(null, identity, instanceId);
 		}
 
@@ -464,15 +349,12 @@ namespace Soso.Net.Behaviors
 		
 		private bool InitializeIdentity(int? spawnType, NetworkIdentity identity, NetworkInstanceId instanceId)
 		{
-			var data = CreateInstanceData(spawnType, identity, instanceId);
-			if (data == null)
+			if (INetworkManager.GetInstanceManager().SetInstanceIdentity(spawnType, identity, instanceId) == false)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Failed to create identity {identity} - Could not register");
 				Destroy(identity.gameObject);
 				return false;
 			}
-			
-			OnInstanceSpawned?.Invoke(data.Value);
 			
 			OnSpawnInternal(spawnType, identity);
 			
@@ -523,7 +405,7 @@ namespace Soso.Net.Behaviors
 
 		#region Network Messages
 		
-		protected override void HandleMessage(INetworkMessage incoming)
+		public override void HandleMessage(INetworkMessage incoming)
 		{
 			switch (incoming)
 			{

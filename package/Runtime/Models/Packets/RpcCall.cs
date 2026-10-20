@@ -13,7 +13,7 @@ namespace Soso.Net.Models.Packets
         public NetworkInstanceId SourceInstance { get; set; }
         public double Time { get; set; }
         public bool SyncTime { get; set; }
-        
+
         public ushort TargetId;
         public ushort SourceId;
         public int Method;

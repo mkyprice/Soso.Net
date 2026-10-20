@@ -1741,8 +1741,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3600400902344a9c862277a3432f5bb4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefaultNamespace.DemoSpawner
-  InstanceId:
-    Id: 0
+  MyInstance:
+    _id:
+      Id: 0
+    _remoteInfo:
+      SessionId: 0
+      RemoteTime: 0
+      TimeDifference: 0
+      LastPingTime: 0
+      Ping: 0
+    Identity: {fileID: 0}
   Prefabs: {fileID: 11400000, guid: 6d940af61e8b75a4aadf822feb05821e, type: 2}
 --- !u!1 &2124414631
 GameObject:

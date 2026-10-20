@@ -8,7 +8,7 @@ namespace Soso.Net
         public ulong Id;
         
         public static readonly NetworkInstanceId Invalid = new NetworkInstanceId(0);
-        public static readonly NetworkInstanceId Spawner = new NetworkInstanceId(0, ushort.MaxValue, 0);
+        public static readonly NetworkInstanceId Spawner = new NetworkInstanceId(ushort.MaxValue, ushort.MaxValue, 0);
         
         public ushort SessionId => (ushort)(Id >> 48);
         public ushort SceneId => (ushort)(Id >> 32);

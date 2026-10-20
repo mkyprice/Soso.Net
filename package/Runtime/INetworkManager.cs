@@ -5,6 +5,7 @@ using Soso.Net.Behaviors.Rpc;
 using Soso.Net.Components;
 using Soso.Net.Components.NetworkedBodies.Packets;
 using Soso.Net.Components.PredictedBodies;
+using Soso.Net.Core;
 using Soso.Net.Logging;
 using Soso.Net.Messaging;
 using Soso.Net.Models;
@@ -19,6 +20,7 @@ namespace Soso.Net
 	{
 		[SerializeField] public INetworkSpawner Spawner;
 		[SerializeField] public NetworkController Network;
+		[SerializeField] public NetworkInstanceManager Instances;
 		[SerializeField] private double _localTimeDebug;
 		[SerializeField, Range(0.01f, 10f)] private float _pingInterval = 0.5f;
 		
@@ -83,6 +85,26 @@ namespace Soso.Net
 			}
 		}
 
+		public static NetworkInstanceManager GetInstanceManager()
+		{
+			if (TryGetInstance(out INetworkManager inst) == false)
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "No network manager found");
+				return null;
+			}
+			return inst.Instances;
+		}
+
+		public static NetworkController GetController()
+		{
+			if (TryGetInstance(out INetworkManager inst) == false)
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "No network manager found");
+				return null;
+			}
+			return inst.Network;
+		}
+
 		public static INetworkSpawner GetSpawner()
 		{
 			if (TryGetInstance(out INetworkManager inst) == false)
@@ -127,6 +149,8 @@ namespace Soso.Net
 			// 	.AddMapping<INetworkMessage, SpawnCommand>()
 			// 	.AddMapping<INetworkMessage, DespawnCommand>();
 			
+			Instances.Initialize();
+			
 			// Initialize Network Time
 			NetworkTime.Initialize();
 			NetworkTime.PingInterval = _pingInterval;
@@ -159,6 +183,7 @@ namespace Soso.Net
 
 		public void StartOfflineMode()
 		{
+			Instances.Initialize();
 			Session.CreateOfflineSession(GetClientId());
 			Spawner.InitializeSpawner();
 		}
@@ -190,6 +215,7 @@ namespace Soso.Net
 					return false;
 				}
 				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Successfully negotiated ID {session}", SessionInfo);
+				Instances.Initialize();
 				Network.Initialize();
 				Spawner.InitializeSpawner();
 				return true;
@@ -208,6 +234,7 @@ namespace Soso.Net
 		{
 			Spawner.Reset();
 			Network.Shutdown();
+			Instances.Reset();
 			NetworkTime.Clear();
 		}
 

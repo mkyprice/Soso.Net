@@ -32,6 +32,20 @@ namespace Soso.Net.Components.NetworkedBodies
             }
         }
 
+        protected override void Initialize()
+        {
+            base.Initialize();
+
+            if (NetId.IsOwner == false)
+            {
+                Rb.bodyType = RigidbodyType2D.Kinematic;
+            }
+            else
+            {
+                Rb.bodyType = RigidbodyType2D.Dynamic;
+            }
+        }
+
         protected override void ReadyToSync()
         {
             base.ReadyToSync();
