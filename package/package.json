@@ -1,17 +1,17 @@
 {
   "name": "com.chronicvagrant.soso-net",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "displayName": "Soso.Net",
   "description": "A Unity networking solution",
   "unity": "6000.3",
   "author": {
     "name": "Ky Price",
-    "email": "chronicvagrant@gmail.com",
-    "url": "https://chronicvagrant.com"
+    "url": "https://chronicvagrant.com",
+    "email": "chronicvagrant@gmail.com"
   },
   "dependencies": {
-    "com.chronicvagrant.soso-utils" : "1.1.4",
-    "com.chronicvagrant.soso-serialization" : "1.0.1"
+    "com.chronicvagrant.soso-utils": "1.1.4",
+    "com.chronicvagrant.soso-serialization": "1.1.0"
   },
   "keywords": [
     "networking",
