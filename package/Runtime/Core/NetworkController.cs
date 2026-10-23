@@ -108,6 +108,10 @@ namespace Soso.Net.Behaviors
 
 		private bool IsSendReady()
 		{
+			if (Network.IsConnected == false)
+			{
+				return false;
+			}
 			double localTime = NetworkTime.LocalTime;
 			return localTime - _lastSendTime >= SendInterval;
 		}

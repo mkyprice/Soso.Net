@@ -42,7 +42,8 @@ namespace Soso.Net
 
         private static void Ping()
         {
-            if (INetworkManager.IsConnected == false)
+            var network = INetworkManager.GetInstance();
+            if (network.IsConnected == false)
             {
                 // We are not connected
                 return;
@@ -54,7 +55,7 @@ namespace Soso.Net
             ping.LocalTimeSec = _lastPingTime;
             ping.RealtimeSendTicks = DateTimeOffset.UtcNow.Ticks;
             NetworkLogger.Debug(CHANNEL.Default, "Sending ping with id {id} and time {time}", ping.SourceId, ping.LocalTimeSec);
-            INetworkManager.GetInstance().Send(ping, 0, SOSO_SEND_TYPE.Reliable);
+            network.Send(ping, 0, SOSO_SEND_TYPE.Reliable);
         }
         
         public static bool IsPingReady()

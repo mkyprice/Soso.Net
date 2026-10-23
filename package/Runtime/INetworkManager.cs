@@ -32,22 +32,8 @@ namespace Soso.Net
 		public abstract bool IsOffline { get; }
 		
 		public SessionManager Session { get; private set; }
-		public static bool IsConnected
-		{
-			get
-			{
-				if (TryGetInstance(out INetworkManager inst) == false)
-				{
-					return false;
-				}
-				var sessionManager = inst.Session;
-				if (sessionManager == null)
-				{
-					return false;
-				}
-				return sessionManager.Session?.SessionId != 0;
-			}
-		}
+		private bool _isConnected = false;
+		public bool IsConnected => _isConnected;
 		public static SessionInfo SessionInfo
 		{
 			get
@@ -186,6 +172,7 @@ namespace Soso.Net
 			Instances.Initialize();
 			Session.CreateOfflineSession(GetClientId());
 			Spawner.InitializeSpawner();
+			_isConnected = true;
 		}
 		
 		public async Awaitable<bool> CreateSocketServer(ulong hostId, int virtualPort = 0)
@@ -218,6 +205,7 @@ namespace Soso.Net
 				Instances.Initialize();
 				Network.Initialize();
 				Spawner.InitializeSpawner();
+				_isConnected = true;
 				return true;
 			}
 			Session.Clear();
@@ -232,6 +220,7 @@ namespace Soso.Net
 
 		protected virtual void Cleanup()
 		{
+			_isConnected = false;
 			Spawner.Reset();
 			Network.Shutdown();
 			Instances.Reset();
