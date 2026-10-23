@@ -32,7 +32,7 @@ namespace Soso.Net.Core
 			_owners.Clear();
 		}
 		
-		public bool TryGetIdentity(NetworkInstanceId id, out BaseNetworkInstance identity)
+		public bool TryGetIdentity(NetworkInstanceId id, out INetworkIdentity identity)
 		{
 			if (_instances.TryGetValue(id, out var instance))
 			{
@@ -75,7 +75,7 @@ namespace Soso.Net.Core
 			}
 		}
 
-		public bool SetInstanceIdentity(int? type, BaseNetworkInstance identity, NetworkInstanceId id)
+		public bool SetInstanceIdentity(int? type, INetworkIdentity identity, NetworkInstanceId id)
 		{
 			lock (_instanceLock)
 			{
@@ -87,7 +87,7 @@ namespace Soso.Net.Core
 					return true;
 				}
 
-				if (instanceData.Identity)
+				if (instanceData.Identity != null)
 				{
 					NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Identity already exists for id {id}", id);
 					return false;
@@ -95,7 +95,7 @@ namespace Soso.Net.Core
 
 				instanceData.SetInstance(identity, type);
 
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Set instance {name}[{instanceId}]", identity.name, id);
+				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Set instance {name}[{instanceId}]", identity.GetName(), id);
 
 				return true;
 			}
@@ -113,11 +113,11 @@ namespace Soso.Net.Core
 			}
 		}
 		
-		public IEnumerable<BaseNetworkInstance> GetOwnedIdentities(ushort sessionId)
+		public IEnumerable<INetworkIdentity> GetOwnedIdentities(ushort sessionId)
 		{
 			foreach (var data in GetOwnedInstances(sessionId))
 			{
-				if (data.Identity)
+				if (data.Identity != null)
 				{
 					yield return data.Identity;
 				}
@@ -143,7 +143,7 @@ namespace Soso.Net.Core
 		public bool TryGetInstance<T>(NetworkInstanceId id, out T data)
 			where T : Component
 		{
-			if (TryGetIdentity(id, out var identity) && identity.gameObject.TryGetComponent(out data))
+			if (TryGetIdentity(id, out var identity) && identity is BaseNetworkInstance goId && goId.gameObject.TryGetComponent(out data))
 			{
 				return true;
 			}

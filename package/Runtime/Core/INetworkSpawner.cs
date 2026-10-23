@@ -48,6 +48,7 @@ namespace Soso.Net.Behaviors
 		
 		public void Reset()
 		{
+			_sceneInitialization.Clear();
 			INetworkManager.GetInstanceManager().DeleteData(NetworkInstanceId.Spawner, out _);
 			ResetInstance();
 		}
@@ -73,6 +74,7 @@ namespace Soso.Net.Behaviors
 
 		#region Scene Management
 
+		private Dictionary<ushort, bool> _sceneInitialization = new Dictionary<ushort, bool>();
 		public void InitializeScene(Scene scene)
 		{
 			// Find all NetworkId instances in the scene
@@ -87,10 +89,13 @@ namespace Soso.Net.Behaviors
 				RegisterStaticInstance(networkInstance);
 			}
 			_serverObjectIdGenerator.SetSequenceOffset(scene.GetNetworkId(), offset);
+			_sceneInitialization[scene.GetNetworkId()] = true;
 		}
 
 		public virtual void Clear(Scene scene)
 		{
+			_sceneInitialization.Remove(scene.GetNetworkId());
+			
 			foreach (var instance in INetworkManager.GetInstanceManager().GetInstancesInScene(scene))
 			{
 				DestroyInstance(instance.Id);
@@ -203,13 +208,11 @@ namespace Soso.Net.Behaviors
 		/// <param name="instanceId"></param>
 		private void DestroyInstance(NetworkInstanceId instanceId)
 		{
-			if (INetworkManager.GetInstanceManager().DeleteData(instanceId, out NetworkInstance instance) == false && (instance != null && instance.Identity) == false)
+			if (INetworkManager.GetInstanceManager().DeleteData(instanceId, out var instance) == false || instance.Identity is BaseNetworkInstance instanceObj == false)
 			{
 				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Failed to delete instance {id}. Instance not found", instanceId);
 				return;
 			}
-			
-			var instanceObj = instance.Identity;
 			
 			if (instanceObj == false || instanceObj.gameObject == false)
 			{
@@ -220,7 +223,7 @@ namespace Soso.Net.Behaviors
 			var scene = instanceObj.gameObject.scene;
 			if (scene.isLoaded == false)
 			{
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Failed to despawn {name}({id}). Scene is not loaded", instanceObj.name, instanceId);
+				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Failed to despawn {name}({id}). Scene is not loaded", instanceObj.GetName(), instanceId);
 				return;
 			}
 			
@@ -405,43 +408,46 @@ namespace Soso.Net.Behaviors
 
 		#region Network Messages
 		
-		public override void HandleMessage(INetworkMessage incoming)
+		public override bool HandleMessage(INetworkMessage incoming)
 		{
 			switch (incoming)
 			{
 				case SpawnCommand spawn:
-					HandleSpawnMessage(spawn);
-					break;
+					return HandleSpawnMessage(spawn);
 				case DespawnCommand despawn:
-					HandleDespawnMessage(despawn);
-					break;
+					return HandleDespawnMessage(despawn);
 				default:
-					base.HandleMessage(incoming);
-					break;
+					return base.HandleMessage(incoming);
 			}
 		}
 		
-		private void HandleSpawnMessage(SpawnCommand cmd)
+		private bool HandleSpawnMessage(SpawnCommand cmd)
 		{
+			if (_sceneInitialization.TryGetValue(cmd.Id.SceneId, out bool isSceneReady) == false || isSceneReady == false)
+			{
+				return false;
+			}
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type}", cmd.Id, ToString(cmd.SpawnType));
 			var source = cmd.Id.SessionId;
-			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsHost())) return;
+			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsHost())) return true;
 
 			int spawnable = cmd.SpawnType;
 			var scene = SceneManager.GetSceneByBuildIndex(cmd.Id.SceneId);
 			var instance = InstantiateIdentity(scene, spawnable, cmd.Position, cmd.Rotation);
 			InitializeIdentity(spawnable, instance, cmd.Id);
+			return true;
 		}
 
-		private void HandleDespawnMessage(DespawnCommand cmd)
+		private bool HandleDespawnMessage(DespawnCommand cmd)
 		{
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received despawn command. Id: {Id}", cmd.Id);
 			
 			// We sent it and have already deleted it
 			var source = cmd.SourceId;
-			if (source == SessionId) return;
+			if (source == SessionId) return true;
 			
 			DestroyInstance(cmd.Id);
+			return true;
 		}
 		
 		#endregion

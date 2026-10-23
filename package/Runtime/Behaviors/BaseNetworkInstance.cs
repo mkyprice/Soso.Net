@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Soso.Net.Behaviors
 {
-	public abstract class BaseNetworkInstance : MonoBehaviour, INetworkPoolable
+	public abstract class BaseNetworkInstance : MonoBehaviour, INetworkPoolable, INetworkIdentity
 	{
 		[Header("DEBUG DO NOT MODIFY")]
 
@@ -48,8 +48,13 @@ namespace Soso.Net.Behaviors
 		private List<INetworkReceiver> _receivers;
 		private bool _isInitialized = false;
 		private CancellationTokenSource _cancellationTokenSource;
-		
-		internal void Initialize(NetworkInstance instance)
+
+		public string GetName()
+		{
+			return name;
+		}
+
+		public void Initialize(NetworkInstance instance)
 		{
 			if (_isInitialized)
 			{
@@ -126,8 +131,12 @@ namespace Soso.Net.Behaviors
 		#region Messaging
 		
 		
-		public virtual void HandleMessage(INetworkMessage incoming)
+		public virtual bool HandleMessage(INetworkMessage incoming)
 		{
+			if (_isInitialized == false)
+			{
+				return false;
+			}
 			switch (incoming)
 			{
 				case RpcCall rpc:
@@ -140,6 +149,7 @@ namespace Soso.Net.Behaviors
 					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Message {msg} was not recognized", incoming);
 					break;
 			}
+			return true;
 		}
 
 		protected void Send(INetworkMessage message, ushort channel)

@@ -17,7 +17,7 @@ namespace Soso.Net.Objects
 		[SerializeField] private RemoteInfo _remoteInfo;
 		[SerializeField] public int? Type;
 		
-		public BaseNetworkInstance Identity;
+		public INetworkIdentity Identity;
 		public NetworkInstanceId Id => _id;
 		public RemoteInfo RemoteInfo
 		{
@@ -38,7 +38,7 @@ namespace Soso.Net.Objects
 			_id = id;
 		}
 
-		public void SetInstance(BaseNetworkInstance instance, int? type)
+		public void SetInstance(INetworkIdentity instance, int? type)
 		{
 			Identity = instance;
 			Type = type;
@@ -60,7 +60,7 @@ namespace Soso.Net.Objects
 
 		public void Update()
 		{
-			if (Identity == false)
+			if (Identity == null)
 			{
 				return;
 			}
@@ -82,7 +82,12 @@ namespace Soso.Net.Objects
 			while (processed < MAX_MESSAGES_PER_UPDATE && _readyQueue.TryDequeue(out var message))
 			{
 				processed++;
-				Identity.HandleMessage(message);
+				if (Identity.HandleMessage(message) == false)
+				{
+					// Identity is not ready
+					_readyQueue.EnqueueFront(message);
+					break;
+				}
 			}
 		}
 
@@ -109,7 +114,7 @@ namespace Soso.Net.Objects
 
 		public override string ToString()
 		{
-			return $"[Type:{Type}, Id:{Id}, Name:{(Identity ? Identity.name : "?")}]";
+			return $"[Type:{Type}, Id:{Id}, Name:{(Identity != null ? Identity.GetName() : "?")}]";
 		}
 
 		public void SetRemoteInfo(RemoteInfo value)
