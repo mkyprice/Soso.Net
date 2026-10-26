@@ -66,6 +66,9 @@ namespace Soso.Net.Behaviors
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not register {name}", name);
 			}
+			
+			// Initialize the starting scene
+			InitializeScene(gameObject.scene);
 		}
 
 		public virtual void Shutdown()
@@ -425,6 +428,7 @@ namespace Soso.Net.Behaviors
 		{
 			if (_sceneInitialization.TryGetValue(cmd.Id.SceneId, out bool isSceneReady) == false || isSceneReady == false)
 			{
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type} but scene {scene} is not ready", cmd.Id, ToString(cmd.SpawnType), cmd.Id.SceneId);
 				return false;
 			}
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type}", cmd.Id, ToString(cmd.SpawnType));

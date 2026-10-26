@@ -67,7 +67,7 @@ namespace Soso.Net.Components.NetworkedBodies
         }
 
 
-        private void FixedUpdate()
+        protected virtual void FixedUpdate()
         {
             if (SyncMethod == SYNC_METHOD.FixedUpdate)
             {
@@ -80,7 +80,7 @@ namespace Soso.Net.Components.NetworkedBodies
             }
         }
 
-        private void Update()
+        protected virtual void Update()
         {
             if (SyncMethod == SYNC_METHOD.Update)
             {
@@ -273,7 +273,6 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             return snapshots.Count == 1 && time - snapshots.Keys[0] >= localTime;
         }
-
 
         protected virtual void Apply(TransformSnapshot interpolated, TransformSnapshot goal)
         {

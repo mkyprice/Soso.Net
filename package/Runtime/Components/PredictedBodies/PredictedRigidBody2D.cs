@@ -2,8 +2,6 @@
 using Soso.Net.Behaviors;
 using Soso.Net.Behaviors.Rpc;
 using Soso.Net.Components.NetworkedBodies.Helpers;
-using Soso.Net.Models;
-using Soso.Net.Models.Packets;
 using UnityEngine;
 
 namespace Soso.Net.Components.PredictedBodies
@@ -28,7 +26,10 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void Awake()
         {
-            Rb = GetComponent<Rigidbody2D>();
+            if (Rb == false)
+            {
+                Rb = GetComponent<Rigidbody2D>();
+            }
             _transform = Rb.transform;
         }
 
@@ -37,7 +38,7 @@ namespace Soso.Net.Components.PredictedBodies
             RecordState();
         }
 
-        private void Update()
+        private void LateUpdate()
         {
             if (NetId == null) return;
             if (NetId.IsOwner)
@@ -79,14 +80,12 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void ApplyState(RigidBody2DState state)
         {
-            Rb.bodyType = RigidbodyType2D.Kinematic;
-            _transform.position = state.Position;
-            _transform.rotation = state.Rotation;
-            Rb.bodyType = RigidbodyType2D.Dynamic;
+            Rb.position = state.Position;
+            Rb.rotation = state.Rotation;
             Rb.linearVelocity = state.Velocity;
             Rb.angularVelocity = state.AngularVelocity;
 
-            // Rb.SyncTransform();
+            Physics2D.SyncTransforms();
         }
 
         private void RecordState()
@@ -142,8 +141,8 @@ namespace Soso.Net.Components.PredictedBodies
         {
             return new RigidBody2DState(
                 NetworkTime.LocalTime,
-                _transform.position,
-                _transform.rotation,
+                Rb.position,
+                Rb.rotation,
                 Rb.linearVelocity,
                 Rb.angularVelocity
             );

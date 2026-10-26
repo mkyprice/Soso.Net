@@ -36,7 +36,7 @@ namespace Soso.Net.Extensions
                 currentSequence++;
                 totalbaked++;
                 identity.BakeSceneId(currentSequence);
-                NetworkLogger.Info(CHANNEL.Default, "Baked {name}'s identity as {id}", identity.gameObject.name, identity.InstanceId);
+                NetworkLogger.Info(CHANNEL.Default, "Baked {name}'s identity as {id}", identity.gameObject.name, identity.BakedId);
             }
 
             NetworkLogger.Info(CHANNEL.Default, "Successfully baked {total} identities", totalbaked);

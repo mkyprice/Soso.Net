@@ -11,11 +11,11 @@ namespace Soso.Net.Components.PredictedBodies
     {
         public double Timestamp;
         public Vector2 Position;
-        public Quaternion Rotation;
         public Vector2 Velocity;
+        public float Rotation;
         public float AngularVelocity;
 
-        public RigidBody2DState(double timestamp, Vector2 position, Quaternion rotation, Vector2 velocity, float angularVelocity)
+        public RigidBody2DState(double timestamp, Vector2 position, float rotation, Vector2 velocity, float angularVelocity)
         {
             Timestamp = timestamp;
             Position = position;

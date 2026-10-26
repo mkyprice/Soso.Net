@@ -3,8 +3,6 @@ using Soso.Net.Components.NetworkedBodies.Helpers;
 using Soso.Net.Components.NetworkedBodies.Packets;
 using Soso.Net.Components.NetworkedBodies.Snapshots;
 using Soso.Net.Logging;
-using Soso.Net.Models;
-using Soso.Net.Models.Packets;
 using UnityEngine;
 using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
@@ -37,6 +35,20 @@ namespace Soso.Net.Components.NetworkedBodies
             base.Initialize();
 
             if (NetId.IsOwner == false)
+            {
+                Rb.bodyType = RigidbodyType2D.Kinematic;
+            }
+            else
+            {
+                Rb.bodyType = RigidbodyType2D.Dynamic;
+            }
+        }
+
+        protected override void FixedUpdate()
+        {
+            base.FixedUpdate();
+            
+            if (NetId != null && NetId.IsOwner == false)
             {
                 Rb.bodyType = RigidbodyType2D.Kinematic;
             }
