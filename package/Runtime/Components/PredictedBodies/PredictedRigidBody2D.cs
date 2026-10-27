@@ -46,7 +46,7 @@ namespace Soso.Net.Components.PredictedBodies
             if (NetId == null) return;
             if (NetId.IsAuthority)
             {
-                var state = BuildState();
+                var state = BuildState(NetworkTime.LocalTime);
                 if (HasChanged(state, _lastState))
                 {
                     SendUpdate(state);
@@ -63,7 +63,7 @@ namespace Soso.Net.Components.PredictedBodies
             }
             else
             {
-                currentState = BuildState();
+                currentState = BuildState(NetworkTime.LocalTime);
             }
             if (HasChanged(state, currentState) == false)
             {
@@ -149,14 +149,14 @@ namespace Soso.Net.Components.PredictedBodies
             if (Rb.linearVelocity.magnitude <= SnapThreshold && Rb.angularVelocity <= SnapThreshold)
             {
                 _history.Clear();
-                _history.Add(state.Timestamp, new RigidBody2DState(state.Timestamp, Rb.position, Rb.rotation, Rb.linearVelocity, Rb.angularVelocity));
+                _history.Add(state.Timestamp, BuildState(state.Timestamp));
             }
             Physics2D.SyncTransforms();
         }
 
         private void RecordState()
         {
-            var state = BuildState();
+            var state = BuildState(NetworkTime.LocalTime);
             _lastState = state;
             _history[state.Timestamp] = state;
 
@@ -190,7 +190,7 @@ namespace Soso.Net.Components.PredictedBodies
                    SyncHelpers.HasChanged(state.AngularVelocity, lastState.AngularVelocity, AngularVelocitySensitivity);
         }
 
-        private RigidBody2DState BuildState()
+        private RigidBody2DState BuildState(double timestamp)
         {
             var position = Rb.position;
             var rotation = Rb.rotation;
@@ -211,7 +211,7 @@ namespace Soso.Net.Components.PredictedBodies
             }
             
             return new RigidBody2DState(
-                NetworkTime.LocalTime,
+                timestamp,
                 position,
                 positionDelta,
                 rotation,
@@ -225,34 +225,30 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void OnCollisionStay2D(Collision2D collision)
         {
-            if (NetId.IsAuthority == false)
+            if (NetId.IsAuthority)
             {
-                if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority == false)
-                {
-                    return;
-                }
-
-                if (rb.NetId.AuthorityId == NetId.AuthorityId)
-                {
-                    return;
-                }
-            
-                NetId.RequestOwnership();
+                return;
             }
             
+            if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority == false)
+            {
+                return;
+            }
+            
+            NetId.RequestOwnership();
         }
 
-        // private void OnCollisionExit2D(Collision2D collision)
-        // {
-        //     if (NetId.IsAuthority == false) return;
-        //     
-        //     if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority == false)
-        //     {
-        //         return;
-        //     }
-        //     
-        //     NetId.GiveUpOwnership();
-        // }
+        private void OnCollisionExit2D(Collision2D collision)
+        {
+            if (NetId.IsAuthority == false) return;
+            
+            if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority == false)
+            {
+                return;
+            }
+            
+            NetId.GiveUpOwnership();
+        }
 
         public override void OnAuthorityTransferred(ushort prevAuthority, ushort newAuthority)
         {
@@ -260,8 +256,8 @@ namespace Soso.Net.Components.PredictedBodies
             if (sId == prevAuthority || sId == newAuthority)
             {
                 _history.Clear();
-                _lastState = BuildState();
-                _history.Add(NetworkTime.LocalTime, _lastState);
+                _lastState = BuildState(NetworkTime.LocalTime);
+                _history.Add(_lastState.Timestamp, _lastState);
             }
         }
 

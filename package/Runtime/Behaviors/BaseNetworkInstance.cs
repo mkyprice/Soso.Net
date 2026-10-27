@@ -61,7 +61,7 @@ namespace Soso.Net.Behaviors
 			}
 			_instance = instance;
 			_networkController = INetworkManager.GetInstance().Network;
-			_rpc = new RpcManager(IsAuthority, Send);
+			_rpc = new RpcManager(Send, () => IsAuthority);
 			_rpc.AddTarget(this, MY_RPC_RECEIVER_ID);
 			// StartMessageThread();
 			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Initializing NetworkIdentity {name} with id {id}", name, InstanceId);

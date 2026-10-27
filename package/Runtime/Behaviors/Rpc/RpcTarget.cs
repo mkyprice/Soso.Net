@@ -35,7 +35,7 @@ namespace Soso.Net.Behaviors.Rpc
 		public void SetSync<T>(SosoSync<T> sync, T value) 
 			where T : unmanaged
 		{
-			if (_manager.IsOwner == false)
+			if (_manager.IsAuthority() == false)
 			{
 				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Cannot set value when not owner. Value: {value}", value);
 				return;

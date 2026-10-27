@@ -9,16 +9,16 @@ namespace Soso.Net.Behaviors.Rpc
 {
     public class RpcManager
     {
-	    public readonly bool IsOwner;
 	    public readonly ushort SessionId;
+	    internal readonly Func<bool> DetermineAuthority;
 	    internal readonly Action<INetworkMessage, ushort> Send;
 	    private readonly Dictionary<ushort, RpcTarget> _targets = new Dictionary<ushort, RpcTarget>();
 
-	    public RpcManager(bool isOwner, Action<INetworkMessage, ushort> send)
+	    public RpcManager(Action<INetworkMessage, ushort> send, Func<bool> determineAuthority)
 	    {
 		    SessionId = INetworkManager.SessionId;
-		    IsOwner = isOwner;
 		    Send = send;
+		    DetermineAuthority = determineAuthority;
 	    }
 
 	    public void AddTarget(object target, ushort targetId)
@@ -55,6 +55,11 @@ namespace Soso.Net.Behaviors.Rpc
 				return;
 			}
 			targetHandler.Process(sync);
+		}
+		
+		public bool IsAuthority()
+		{
+			return DetermineAuthority();
 		}
 
 		#region RPC Calls
