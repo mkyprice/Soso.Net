@@ -37,7 +37,7 @@ namespace Soso.Net.Components.NetworkedBodies
         [Tooltip("Offset for remote time")]
         [SerializeField] public int SnapshotBufferLimit = 64;
     
-        public bool IsOwned => NetId == null || NetId.IsOwner;
+        public bool IsOwned => NetId == null || NetId.IsAuthority;
     
         public const int SNAPSHOT_CAPACITY = 16;
         protected readonly SortedList<double, TransformSnapshot> ClientSnapshots = new SortedList<double, TransformSnapshot>(SNAPSHOT_CAPACITY);
@@ -56,13 +56,6 @@ namespace Soso.Net.Components.NetworkedBodies
 
         protected override void Initialize()
         {
-            if (INetworkManager.GetInstance().IsOffline)
-            {
-                NetworkLogger.Info(CHANNEL.Default, "You are offline. Disabling {name}", nameof(NetworkedTransform));
-                enabled = false;
-                return;
-            }
-
             ResetState();
         }
 
@@ -80,7 +73,7 @@ namespace Soso.Net.Components.NetworkedBodies
             }
         }
 
-        protected virtual void Update()
+        protected virtual void LateUpdate()
         {
             if (SyncMethod == SYNC_METHOD.Update)
             {
@@ -159,10 +152,10 @@ namespace Soso.Net.Components.NetworkedBodies
             
             var localTime = NetworkTime.LocalTime;
 
-            double snapshotTime = NetworkTime.ToLocalTime(NetId.OwnerId, sync.Time);
+            double snapshotTime = NetworkTime.ToLocalTime(NetId.AuthorityId, sync.Time);
             if (OnlySyncOnChange && NeedsCorrection(ClientSnapshots, localTime, snapshotTime))
             {
-                RewriteHistory(ClientSnapshots, snapshotTime, localTime, Target.position, Target.rotation, Target.localScale);
+                RewriteHistory(ClientSnapshots, snapshotTime, Target.position, Target.rotation, Target.localScale);
             }
             
             AddSnapshot(ClientSnapshots, snapshotTime + SyncInterval, position, rotation, scale);
@@ -257,16 +250,16 @@ namespace Soso.Net.Components.NetworkedBodies
                 return;
             }
             
-            var snapshot = new TransformSnapshot(time, NetworkTime.LocalTime, position.Value, rotation.Value, scale.Value);
-            snapshots[snapshot.RemoteTime] = snapshot;
+            var snapshot = new TransformSnapshot(time, position.Value, rotation.Value, scale.Value);
+            snapshots[snapshot.Timestamp] = snapshot;
         }
 
-        private void RewriteHistory(SortedList<double, TransformSnapshot> snapshots, double time, double localTime, Vector3 pos, Quaternion rot, Vector3 scale)
+        private void RewriteHistory(SortedList<double, TransformSnapshot> snapshots, double time, Vector3 pos, Quaternion rot, Vector3 scale)
         {
             snapshots.Clear();
             
-            TransformSnapshot snapshot = new TransformSnapshot(time - SyncInterval, localTime - SyncInterval, pos, rot, scale);
-            snapshots[snapshot.RemoteTime] = snapshot;
+            TransformSnapshot snapshot = new TransformSnapshot(time - SyncInterval, pos, rot, scale);
+            snapshots[snapshot.Timestamp] = snapshot;
         }
 
         private bool NeedsCorrection(SortedList<double, TransformSnapshot> snapshots, double localTime, double time)
@@ -283,7 +276,7 @@ namespace Soso.Net.Components.NetworkedBodies
 
         protected virtual TransformSnapshot BuildSnapshot()
         {
-            return new TransformSnapshot(NetworkTime.LocalTime, 0, Target.position, Target.rotation, Target.localScale);
+            return new TransformSnapshot(NetworkTime.LocalTime, Target.position, Target.rotation, Target.localScale);
         }
 
         #endregion

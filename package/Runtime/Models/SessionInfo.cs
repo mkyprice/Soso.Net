@@ -8,6 +8,8 @@ namespace Soso.Net.Models
     {
         public ulong ConnectionId;
         public ushort SessionId;
+        public static readonly ushort SERVER_SESSION_ID = 1;
+        public bool IsServer => SessionId == SERVER_SESSION_ID;
 
         public override string ToString()
         {

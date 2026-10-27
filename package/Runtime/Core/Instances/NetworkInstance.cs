@@ -54,7 +54,8 @@ namespace Soso.Net.Objects
 			}
 			else
 			{
-				_readyQueue.EnqueueFront(incoming);
+				NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} Enqueuing ready message {message}", Id, incoming);
+				_readyQueue.EnqueueBack(incoming);
 			}
 		}
 
@@ -81,6 +82,7 @@ namespace Soso.Net.Objects
 			int processed = 0;
 			while (processed < MAX_MESSAGES_PER_UPDATE && _readyQueue.TryDequeue(out var message))
 			{
+				NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} Processing message {message}", Id, message);
 				processed++;
 				if (Identity.HandleMessage(message) == false)
 				{
@@ -89,22 +91,6 @@ namespace Soso.Net.Objects
 					break;
 				}
 			}
-		}
-
-		public bool TryDequeueMessage(out INetworkMessage message)
-		{
-			if (_readyQueue.TryDequeue(out message) == false)
-			{
-				return false;
-			}
-			float messageWait = (float)(message.Time - NetworkTime.LocalTime);
-			if (messageWait > 0.001f)
-			{
-				_readyQueue.EnqueueFront(message);
-				message = null;
-				return false;
-			}
-			return true;
 		}
 
 		public override int GetHashCode()

@@ -15,8 +15,8 @@ namespace Soso.Net.Core
 		/// <summary>
 		/// <OwnerId, InstanceId[]>
 		/// </summary>
-		private Dictionary<ushort, HashSet<NetworkInstanceId>> _owners = new Dictionary<ushort, HashSet<NetworkInstanceId>>();
-		private Dictionary<NetworkInstanceId, NetworkInstance> _instances = new Dictionary<NetworkInstanceId, NetworkInstance>();
+		private readonly Dictionary<ushort, HashSet<NetworkInstanceId>> _owners = new Dictionary<ushort, HashSet<NetworkInstanceId>>();
+		private readonly Dictionary<NetworkInstanceId, NetworkInstance> _instances = new Dictionary<NetworkInstanceId, NetworkInstance>();
 		private object _instanceLock = new object();
 		
 
@@ -77,28 +77,25 @@ namespace Soso.Net.Core
 
 		public bool SetInstanceIdentity(int? type, INetworkIdentity identity, NetworkInstanceId id)
 		{
-			lock (_instanceLock)
+			var instanceData = GetOrCreateInstance(id);
+			
+			if (instanceData.Identity == identity)
 			{
-				var instanceData = GetOrCreateInstance(id);
-
-				if (instanceData.Identity == identity)
-				{
-					NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Instance Identity {id} is already set to {instance}", id, identity);
-					return true;
-				}
-
-				if (instanceData.Identity != null)
-				{
-					NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Identity already exists for id {id}", id);
-					return false;
-				}
-
-				instanceData.SetInstance(identity, type);
-
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Set instance {name}[{instanceId}]", identity.GetName(), id);
-
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Instance identity {id} is already set to identity {inst}", id, identity);
 				return true;
 			}
+
+			if (instanceData.Identity != null)
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Identity already exists for id {id}", id);
+				return false;
+			}
+
+			instanceData.SetInstance(identity, type);
+
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Set instance {name}[{instanceId}]", identity.GetName(), id);
+
+			return true;
 		}
 
 		public IEnumerable<NetworkInstance> GetInstancesInScene(Scene scene)
@@ -125,13 +122,16 @@ namespace Soso.Net.Core
 		}
 		public IEnumerable<NetworkInstance> GetOwnedInstances(ushort sessionId)
 		{
-			if (_owners.TryGetValue(sessionId, out var ids) == false)
+			lock (_instanceLock)
 			{
-				yield break;
-			}
-			foreach (var id in ids)
-			{
-				yield return _instances[id];
+				if (_owners.TryGetValue(sessionId, out var ids) == false)
+				{
+					yield break;
+				}
+				foreach (var id in ids)
+				{
+					yield return _instances[id];
+				}
 			}
 		}
 

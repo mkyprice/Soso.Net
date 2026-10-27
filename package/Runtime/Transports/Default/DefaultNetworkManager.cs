@@ -9,7 +9,7 @@ namespace Soso.Net.Transports.Default
 {
     public class DefaultNetworkManager : INetworkManager
     {
-        [SerializeField] public double LagSimulationSeconds;
+        [SerializeField] public double LagSimulationMs;
         [SerializeField] private string Ip;
         [SerializeField] private int Port;
         [SerializeField] private string ServerUrl;

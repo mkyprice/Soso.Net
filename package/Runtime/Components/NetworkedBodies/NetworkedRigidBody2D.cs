@@ -18,6 +18,7 @@ namespace Soso.Net.Components.NetworkedBodies
         [SerializeField] public float AngularVelocitySensitivity = 0.1f;
 
         public Rigidbody2D Rb;
+
         private SyncRigidBody2D _lastSentSync;
 
         protected override void Awake()
@@ -34,7 +35,7 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             base.Initialize();
 
-            if (NetId.IsOwner == false)
+            if (NetId.IsAuthority == false)
             {
                 Rb.bodyType = RigidbodyType2D.Kinematic;
             }
@@ -48,7 +49,7 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             base.FixedUpdate();
             
-            if (NetId != null && NetId.IsOwner == false)
+            if (NetId != null && NetId.IsAuthority == false)
             {
                 Rb.bodyType = RigidbodyType2D.Kinematic;
             }

@@ -2,7 +2,6 @@
 {
     public interface ISnapshot
     {
-        public double LocalTime { get; set; }
-        public double RemoteTime { get; set; }
+        public double Timestamp { get; set; }
     }
 }

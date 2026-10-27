@@ -15,7 +15,7 @@ namespace Soso.Net
         public Action<SessionInfo> OnUserConnected;
         public Action<SessionInfo> OnUserDisconnected;
         
-        private ushort _nextSessionId = 1;
+        private ushort _nextSessionId = SessionInfo.SERVER_SESSION_ID;
         private object _sessionIdLock = new object();
         private ConcurrentDictionary<ulong, SessionInfo> _sessionMap = new ConcurrentDictionary<ulong, SessionInfo>();
 
@@ -69,7 +69,7 @@ namespace Soso.Net
             lock (_sessionIdLock)
             {
                 _sessionMap.Clear();
-                _nextSessionId = 1;
+                _nextSessionId = SessionInfo.SERVER_SESSION_ID; // IMPORTANT! Server ID IS 1
             }
         }
         
@@ -161,8 +161,8 @@ namespace Soso.Net
             ushort nextId;
             lock (_sessionIdLock)
             {
-                nextId = _nextSessionId;
                 _nextSessionId++;
+                nextId = _nextSessionId;
             }
 
             var client = new SessionInfo()

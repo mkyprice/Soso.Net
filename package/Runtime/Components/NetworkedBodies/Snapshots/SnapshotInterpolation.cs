@@ -18,16 +18,16 @@ namespace Soso.Net.Components.NetworkedBodies.Snapshots
                 var b = snapshots.Values[i + 1];
 
                 // PPLogger.Debug(CHANNEL.Network, "LocalTime: {t} RemoteTimeA: {a} RemoteTimeB: {b}", localTime, a.RemoteTime, b.RemoteTime);
-                if (localTime >= a.RemoteTime && localTime <= b.RemoteTime)
+                if (localTime >= a.Timestamp && localTime <= b.Timestamp)
                 {
                     from = i;
                     to = i + 1;
-                    time = Mathf.InverseLerp((float)a.RemoteTime, (float)b.RemoteTime, (float)localTime);
+                    time = Mathf.InverseLerp((float)a.Timestamp, (float)b.Timestamp, (float)localTime);
                     return;
                 }
             }
 
-            if (snapshots.Values[0].RemoteTime > localTime)
+            if (snapshots.Values[0].Timestamp > localTime)
             {
                 to = from = 0;
                 time = 0;

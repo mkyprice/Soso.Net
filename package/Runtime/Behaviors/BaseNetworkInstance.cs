@@ -15,16 +15,16 @@ namespace Soso.Net.Behaviors
 	public abstract class BaseNetworkInstance : MonoBehaviour, INetworkPoolable, INetworkIdentity
 	{
 		[Header("DEBUG DO NOT MODIFY")]
-
-		[SerializeField] public NetworkInstance Instance;
+		[SerializeField] private NetworkInstance _instance;
+		public NetworkInstance Instance => _instance;
 		public NetworkInstanceId InstanceId => Instance?.Id ?? NetworkInstanceId.Invalid;
 		public RemoteInfo RemoteInfo => Instance.RemoteInfo;
 
-		public ushort OwnerId => InstanceId.SessionId;
+		public abstract bool IsAuthority { get; }
+		public virtual ushort AuthorityId => InstanceId.SessionId;
 		public ulong Sequence => InstanceId.SequenceNumber;
 		public double RemoteTime => RemoteInfo.RemoteTime;
 		public double Ping => RemoteInfo.Ping;
-
 		public bool IsServer
 		{
 			get
@@ -33,7 +33,6 @@ namespace Soso.Net.Behaviors
 			}
 		}
 		
-		public abstract bool IsOwner { get; }
 		
 		private static readonly ushort MY_RPC_RECEIVER_ID = ushort.MaxValue;
 		
@@ -45,7 +44,6 @@ namespace Soso.Net.Behaviors
 		
 		private RpcManager _rpc;
 		private NetworkController _networkController;
-		private List<INetworkReceiver> _receivers;
 		private bool _isInitialized = false;
 		private CancellationTokenSource _cancellationTokenSource;
 
@@ -54,26 +52,19 @@ namespace Soso.Net.Behaviors
 			return name;
 		}
 
-		public void Initialize(NetworkInstance instance)
+		public virtual void Initialize(NetworkInstance instance)
 		{
 			if (_isInitialized)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} was already initialized", name);
-				return;
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} was already initialized. Resetting...", name);
+				ResetInstance();
 			}
-			Instance = instance;
+			_instance = instance;
 			_networkController = INetworkManager.GetInstance().Network;
-			_rpc = new RpcManager(IsOwner, Send);
+			_rpc = new RpcManager(IsAuthority, Send);
 			_rpc.AddTarget(this, MY_RPC_RECEIVER_ID);
 			// StartMessageThread();
 			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Initializing NetworkIdentity {name} with id {id}", name, InstanceId);
-
-			_receivers = new List<INetworkReceiver>();
-			var receivers = GetComponentsInChildren<INetworkReceiver>(true);
-			for (ushort i = 0; i < receivers.Length; i++)
-			{
-				AddReceiver(receivers[i]);
-			}
 			_isInitialized = true;
 		}
 
@@ -84,50 +75,6 @@ namespace Soso.Net.Behaviors
 			Instance.Update();
 		}
 
-		#region Receivers
-		
-		public void Deregister(INetworkReceiver receiver)
-		{
-			if (_receivers == null || _isInitialized == false) return;
-			
-			ushort index = (ushort)(_receivers.IndexOf(receiver));
-			if (index > 0)
-			{
-				_rpc.RemoveTarget(index);
-				_receivers.Remove(receiver);
-			}
-		}
-
-		private bool AddReceiver(INetworkReceiver receiver)
-		{
-			if (_receivers.Contains(receiver))
-			{
-				return false;
-			}
-			ushort id = (ushort)(_receivers.Count);
-			receiver.Initialize(id, this);
-			_receivers.Add(receiver);
-			_rpc.AddTarget(receiver, id);
-			return true;
-		}
-
-		private void AddReceiverTree(GameObject root)
-		{
-			var receivers = root.GetComponentsInChildren<INetworkReceiver>(true);
-			foreach (var receiver in receivers)
-			{
-				AddReceiver(receiver);
-			}
-		}
-
-		public T AddComponent<T>() 
-			where T : INetworkReceiver
-		{
-			Rpc(RpcAddComponent, typeof(T).AssemblyQualifiedName);
-			return GetComponent<T>();
-		}
-		#endregion
-
 		#region Messaging
 		
 		
@@ -137,6 +84,7 @@ namespace Soso.Net.Behaviors
 			{
 				return false;
 			}
+
 			switch (incoming)
 			{
 				case RpcCall rpc:
@@ -149,6 +97,7 @@ namespace Soso.Net.Behaviors
 					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Message {msg} was not recognized", incoming);
 					break;
 			}
+			
 			return true;
 		}
 
@@ -172,6 +121,16 @@ namespace Soso.Net.Behaviors
 		#endregion
 
 		#region RPC
+
+		protected void AddRpcTarget(object target, ushort id)
+		{
+			_rpc.AddTarget(target, id);
+		}
+
+		protected void RemoveRpcTarget(ushort id)
+		{
+			_rpc.RemoveTarget(id);
+		}
 		
 		protected void Rpc(Action function) => _rpc.Rpc(function, MY_RPC_RECEIVER_ID);
 		protected void Rpc<T>(Action<T> function, T arg0) => _rpc.Rpc(function, MY_RPC_RECEIVER_ID, arg0);
@@ -182,11 +141,10 @@ namespace Soso.Net.Behaviors
 
 		#region Poolable
 
-		protected void ResetInstance()
+		protected virtual void ResetInstance()
 		{
 			_isInitialized = false;
-			Instance = null;
-			_receivers?.Clear();
+			_instance = null;
 			_rpc?.Clear();
 			_rpc = null;
 		}
@@ -209,23 +167,6 @@ namespace Soso.Net.Behaviors
 		public virtual void DespawnLocal()
 		{
 			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{name} is not available for {this}", nameof(DespawnLocal), this);
-		}
-
-		#endregion
-
-		#region RPC Functions
-		
-		[SosoRpc(RPC_CALL_TYPE.Client, true, true)]
-		private void RpcAddComponent(string typeName)
-		{
-			Type type = Type.GetType(typeName);
-			if (type == null)
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Cannot find type {typeName}", typeName);
-				return;
-			}
-			var receiver = gameObject.AddComponent(type) as INetworkReceiver;
-			AddReceiver(receiver);
 		}
 
 		#endregion

@@ -6,6 +6,7 @@ using Soso.Net.Behaviors.Rpc;
 using Soso.Net.Components.Spawning;
 using Soso.Net.Extensions;
 using Soso.Net.Logging;
+using Soso.Net.Models;
 using Soso.Net.Models.Packets;
 using Soso.Net.Objects;
 using Soso.Net.Utils;
@@ -19,7 +20,7 @@ namespace Soso.Net.Behaviors
 	{
 		[SerializeField] public SpawnList Prefabs;
 		
-		public override bool IsOwner => true;
+		public override bool IsAuthority => true;
 		protected ushort SessionId { get; private set; }
 		public new NetworkController Network { get; private set; }
 		
@@ -56,10 +57,10 @@ namespace Soso.Net.Behaviors
 		public void InitializeSpawner()
 		{
 			Network = INetworkManager.GetInstance().Network;
-			SessionId = INetworkManager.GetInstance().Session.Session?.SessionId ?? 0;
+			SessionId = INetworkManager.GetInstance().Session.Session?.SessionId ?? SessionInfo.SERVER_SESSION_ID;
 			
 			_idGenerator = new NetworkIdGenerator(SessionId);
-			_serverObjectIdGenerator = new NetworkIdGenerator(0);
+			_serverObjectIdGenerator = new NetworkIdGenerator(SessionInfo.SERVER_SESSION_ID);
 
 			if (INetworkManager.GetInstanceManager().InstanceExists(NetworkInstanceId.Spawner) == false
 				&& INetworkManager.GetInstanceManager().SetInstanceIdentity(null, this, NetworkInstanceId.Spawner) == false)
@@ -78,12 +79,17 @@ namespace Soso.Net.Behaviors
 		#region Scene Management
 
 		private Dictionary<ushort, bool> _sceneInitialization = new Dictionary<ushort, bool>();
+		
 		public void InitializeScene(Scene scene)
 		{
+			if (IsSceneInitialized(scene))
+			{
+				return;
+			}
 			// Find all NetworkId instances in the scene
 			var networkInstances = scene.GetRootGameObjects()
 				.SelectMany(go => go.GetComponentsInChildren<NetworkIdentity>(true))
-				.Where(net => net.IsServerAuthority);
+				.Where(net => net.BakedId != 0);
 
 			ulong offset = 0;
 			foreach (var networkInstance in networkInstances)
@@ -93,6 +99,11 @@ namespace Soso.Net.Behaviors
 			}
 			_serverObjectIdGenerator.SetSequenceOffset(scene.GetNetworkId(), offset);
 			_sceneInitialization[scene.GetNetworkId()] = true;
+		}
+
+		public bool IsSceneInitialized(Scene scene)
+		{
+			return _sceneInitialization.TryGetValue(scene.GetNetworkId(), out var isInitialized) && isInitialized;
 		}
 
 		public virtual void Clear(Scene scene)

@@ -23,7 +23,7 @@ public class ExampleReceiver : INetworkReceiver
     {
         base.Initialize();
 
-        if (NetId.IsOwner)
+        if (NetId.IsAuthority)
         {
             Movement.performed += OnMovementInput;
             Movement.canceled += OnMovementInput;

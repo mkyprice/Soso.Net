@@ -8,7 +8,7 @@ namespace Soso.Net.Behaviors
 {
 	public abstract class INetworkReceiver : MonoBehaviour, INetworkPoolable
 	{
-		[NonSerialized] public BaseNetworkInstance NetId;
+		[NonSerialized] public NetworkIdentity NetId;
 		[NonSerialized] public ushort LocalId;
 		public bool IsInitialized => _isInitialized;
 		private bool _isInitialized = false;
@@ -22,7 +22,7 @@ namespace Soso.Net.Behaviors
 			NetId?.Deregister(this);
 		}
 
-		public void Initialize(ushort i, BaseNetworkInstance networkIdentity)
+		public void Initialize(ushort i, NetworkIdentity networkIdentity)
 		{
 			if (_isInitialized)
 			{
@@ -37,6 +37,8 @@ namespace Soso.Net.Behaviors
 		}
 
 		protected virtual void Initialize() { }
+
+		public virtual void OnAuthorityTransferred(ushort prevAuthority, ushort newAuthority) { }
 
 		#region RPC
 		

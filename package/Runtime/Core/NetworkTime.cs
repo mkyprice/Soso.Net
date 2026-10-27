@@ -40,7 +40,7 @@ namespace Soso.Net
             ConnectionInfo.Clear();
         }
 
-        private static void Ping()
+        private static void Ping(ushort sessionId)
         {
             var network = INetworkManager.GetInstance();
             if (network.IsConnected == false)
@@ -49,9 +49,8 @@ namespace Soso.Net
                 return;
             }
             _lastPingTime = LocalTime;
-            var session = INetworkManager.SessionInfo;
             PingPacket ping = new PingPacket();
-            ping.SourceId = session.SessionId;
+            ping.SourceId = sessionId;
             ping.LocalTimeSec = _lastPingTime;
             ping.RealtimeSendTicks = DateTimeOffset.UtcNow.Ticks;
             NetworkLogger.Debug(CHANNEL.Default, "Sending ping with id {id} and time {time}", ping.SourceId, ping.LocalTimeSec);
@@ -68,6 +67,16 @@ namespace Soso.Net
         {
             // Forward message to all
             INetworkManager.GetInstance().Broadcast(ping, PING_CHANNEL, SOSO_SEND_TYPE.Reliable);
+        }
+        
+        public static double ServerToLocalTime(double remoteTime)
+        {
+            // Server SessionId will always be 1
+            if (ConnectionInfo.TryGetValue(SessionInfo.SERVER_SESSION_ID, out var info))
+            {
+                return ToLocalTime(info, remoteTime);
+            }
+            return remoteTime;
         }
         
         public static double ToLocalTime(ushort netId, double remoteTime)
@@ -164,7 +173,11 @@ namespace Soso.Net
             if (network.IsOffline || network.Session == null) return;
             if (IsPingReady())
             {
-                Ping();
+                Ping(INetworkManager.SessionId);
+                if (network.IsHost())
+                {
+                    Ping(SessionInfo.SERVER_SESSION_ID);
+                }
             }
         }
     }

@@ -45,8 +45,8 @@ namespace Soso.Net.Transports.Default
             if (_receiveQueue.Count > 0)
             {
                 long currentTime = DateTime.UtcNow.Ticks;
-                double lagSimulationSecs = (DefaultNetworkManager.GetInstance() as DefaultNetworkManager)?.LagSimulationSeconds ?? 0;
-                long lagSimulationTicks = TimeSpan.FromSeconds(lagSimulationSecs).Ticks;
+                double lagSimulationMs = (DefaultNetworkManager.GetInstance() as DefaultNetworkManager)?.LagSimulationMs ?? 0;
+                long lagSimulationTicks = TimeSpan.FromMilliseconds(lagSimulationMs).Ticks;
                 long randomSimulation = (long)UnityEngine.Random.Range(-lagSimulationTicks / 2f, lagSimulationTicks / 2f);
                 lagSimulationTicks += randomSimulation;
                 while (_receiveQueue.TryPeek(out var next) && next.Time + lagSimulationTicks <= currentTime)
@@ -59,8 +59,8 @@ namespace Soso.Net.Transports.Default
             if (_sendQueue.Count > 0)
             {
                 long currentTime = DateTime.UtcNow.Ticks;
-                double lagSimulationSecs = (DefaultNetworkManager.GetInstance() as DefaultNetworkManager)?.LagSimulationSeconds ?? 0;
-                long lagSimulationTicks = TimeSpan.FromSeconds(lagSimulationSecs).Ticks;
+                double lagSimulationMs = (DefaultNetworkManager.GetInstance() as DefaultNetworkManager)?.LagSimulationMs ?? 0;
+                long lagSimulationTicks = TimeSpan.FromMilliseconds(lagSimulationMs).Ticks;
                 long randomSimulation = (long)UnityEngine.Random.Range(-lagSimulationTicks / 2f, lagSimulationTicks / 2f);
                 lagSimulationTicks += randomSimulation;
                 while (_sendQueue.TryPeek(out var next) && next.Time + lagSimulationTicks <= currentTime)
