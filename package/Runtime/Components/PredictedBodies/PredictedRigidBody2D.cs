@@ -255,8 +255,8 @@ namespace Soso.Net.Components.PredictedBodies
             var sId = INetworkManager.SessionId;
             if (sId == prevAuthority || sId == newAuthority)
             {
-                _history.Clear();
                 _lastState = BuildState(NetworkTime.LocalTime);
+                _history.Clear();
                 _history.Add(_lastState.Timestamp, _lastState);
             }
         }

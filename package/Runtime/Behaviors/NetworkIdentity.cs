@@ -194,18 +194,32 @@ namespace Soso.Net.Behaviors
 
 		public void RequestOwnership()
 		{
-			if (AuthorityId == INetworkManager.SessionId)
+			var sessionId = INetworkManager.SessionId;
+			if (IsAuthority)
 			{
 				return;
 			}
-
-			NetworkLogger.Info(CHANNEL.Default, "Requesting ownership of {a}", InstanceId);
-			Rpc(RpcRequestOwnership, INetworkManager.SessionId);
+			
+			ushort id;
+			if (InstanceId.SessionId == sessionId)
+			{
+				id = 0;
+			}
+			else if (IsServer)
+			{
+				id = SessionInfo.SERVER_SESSION_ID;
+			}
+			else
+			{
+				id = sessionId;
+			}
+			NetworkLogger.Info(CHANNEL.Default, "Requesting ownership of {a} to {b}. Current authority: {c}", InstanceId, id, AuthorityId);
+			Rpc(RpcRequestOwnership, id);
 		}
 
 		public void GiveUpOwnership()
 		{
-			if (_authorityOverride == 0)
+			if (IsAuthority == false)
 			{
 				return;
 			}
@@ -216,7 +230,7 @@ namespace Soso.Net.Behaviors
 		[SosoRpc(RPC_CALL_TYPE.Client, false, true)]
 		private void RpcRequestOwnership(ushort sessionId)
 		{
-			if (AuthorityId == sessionId)
+			if (IsAuthority == false || AuthorityId == sessionId)
 			{
 				return;
 			}
