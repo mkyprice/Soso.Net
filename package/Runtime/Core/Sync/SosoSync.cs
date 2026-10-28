@@ -105,7 +105,7 @@ namespace Soso.Net.Core.Sync
             _dirtyValue = value;
             _isDirty = false;
             _lastSync = time;
-            NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "{name}:{id} - Set from {old} to {new}", nameof(SosoSync<T>), Name, oldValue, newValue);
+            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name}:{id} - Set from {old} to {new}", nameof(SosoSync<T>), Name, oldValue, newValue);
             OnChanged?.Invoke(oldValue, newValue);
             return true;
         }
@@ -128,7 +128,7 @@ namespace Soso.Net.Core.Sync
                     return;
                 }
                 
-                NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Server sync {name} received value {v} from {source}", _name, value, source.SessionId);
+                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Server sync {name} received value {v} from {source}", _name, value, source.SessionId);
                 if (SetInternal(value, localTime))
                 {
                     SyncCall call = new SyncCall()
@@ -145,7 +145,7 @@ namespace Soso.Net.Core.Sync
             }
             else
             {
-                NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client sync {name} received value {v}", _name, value);
+                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Client sync {name} received value {v}", _name, value);
                 SetInternal(value, localTime);
             }
         }

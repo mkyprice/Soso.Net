@@ -20,7 +20,7 @@ namespace Soso.Net.Behaviors.Rpc
 			TargetId = Target.GetLocalId();
 			_manager = manager;
 			_cache = RpcCache.Get(target.GetType());
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Created {name} for {target}({id}). RPCs: {rpcCount}", 
+			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Created {name} for {target}({id}). RPCs: {rpcCount}", 
 				nameof(RpcContainer), Target.GetType().Name, TargetId, _cache.Count);
 		}
 		

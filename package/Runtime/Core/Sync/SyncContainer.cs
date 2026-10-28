@@ -24,7 +24,7 @@ namespace Soso.Net.Behaviors.Rpc
                 _syncs[sync.SyncId] = sync;
                 sync.Initialize(manager);
             }
-            NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Created {name} for {target}({id}). Syncs: {syncCount}", 
+            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Created {name} for {target}({id}). Syncs: {syncCount}", 
                 nameof(SyncContainer), target.GetType().Name, target.GetLocalId(), _syncs.Count);
         }
         

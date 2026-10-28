@@ -219,7 +219,7 @@ namespace Soso.Net.Behaviors
 				id = sessionId;
 			}
 
-			NetworkLogger.Info(CHANNEL.Default, "Attempting to take ownership of {a} to {b}. Current authority: {c}", gameObject.name, id, AuthorityId);
+			NetworkLogger.Debug(CHANNEL.Default, "Attempting to take ownership of {a} to {b}. Current authority: {c}", gameObject.name, id, AuthorityId);
 			_authorityOverride.Set(id);
 		}
 
@@ -229,14 +229,14 @@ namespace Soso.Net.Behaviors
 			{
 				return;
 			}
-			NetworkLogger.Info(CHANNEL.Default, "Giving {id} up ownership of {a}", AuthorityId, gameObject.name);
+			NetworkLogger.Debug(CHANNEL.Default, "Giving {id} up ownership of {a}", AuthorityId, gameObject.name);
 			_authorityOverride.Set(0);
 		}
 
 		private void OnAuthorityChanged(ushort previous, ushort next)
 		{
 			_authorityOverrideDebug = next;
-			NetworkLogger.Info(CHANNEL.Default, "Ownership of {a} transferred from {b} to {c}", gameObject.name, previous, next);
+			NetworkLogger.Debug(CHANNEL.Default, "Ownership of {a} transferred from {b} to {c}", gameObject.name, previous, next);
 			foreach (var receiver in _receivers)
 			{
 				receiver.OnAuthorityTransferred(previous, next);
