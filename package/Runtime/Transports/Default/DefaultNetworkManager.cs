@@ -91,27 +91,24 @@ namespace Soso.Net.Transports.Default
             }
         }
 
-        public override void Send<T>(T message, int channel, SOSO_SEND_TYPE sendType)
+        protected override void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, int channel)
         {
             if (_connectionManager == null)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Tried to send message type: {typeof(T).Name} but connection manager was null");
+                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Tried to send message but connection manager was null");
                 return;
             }
-            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, $"{nameof(Send)} - Msg: {message} Chl: {channel}");
-            _connectionManager.MyConnection.Send(message, channel, sendType);
+            _connectionManager.MyConnection.Send(data, offset, length, sendType, channel);
         }
 
-        public override void Broadcast<T>(T message, int channel, SOSO_SEND_TYPE sendType)
+        protected override void SendTo(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ulong connectionId, int channel)
         {
             if (_socketManager == null)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Tried to send message type: {typeof(T).Name} but socket manager was null");
+                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Tried to send message but socket manager was null");
                 return;
             }
-            
-            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, $"{nameof(Broadcast)} - Msg: {message} Chl: {channel}");
-            _socketManager.Broadcast(message, channel, sendType);
+            _socketManager.SendTo(data, offset, length, sendType, channel, connectionId);
         }
 
         public override ulong GetClientId()

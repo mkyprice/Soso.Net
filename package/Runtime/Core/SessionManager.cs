@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
+using Soso.Net.Utils;
 using Soso.Utils;
 using UnityEngine;
 using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
@@ -128,6 +129,7 @@ namespace Soso.Net
             }
         }
 
+        private MessageSerializer _serializer = new MessageSerializer();
         private void OnServerIdNegotiation(SessionNegotiation negotiation, long arg2, long arg3, IUserConnection connection)
         {
             var client = BuildClient(connection.Id);
@@ -137,7 +139,8 @@ namespace Soso.Net
                 Session = client,
                 ExistingUsers = _sessionMap.Values.ToArray(),
             };
-            connection.Send(returnNegotiation, 0, SOSO_SEND_TYPE.Reliable);
+            int length = _serializer.Write(returnNegotiation);
+            connection.Send(_serializer.SendBuffer, 0, length, SOSO_SEND_TYPE.Reliable, 0);
             
             INetworkManager.GetInstance().Broadcast(client, 0, SOSO_SEND_TYPE.Reliable);
         }

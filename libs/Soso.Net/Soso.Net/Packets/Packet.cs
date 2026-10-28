@@ -8,6 +8,9 @@ namespace Soso.Net.Packets
 	{
 		public readonly PacketHeader Header;
 		public readonly int Channel;
+		/// <summary>
+		/// Unix time MS
+		/// </summary>
 		public readonly long Timestamp;
 		public readonly long MessageNumber; // Do not serialize
 		public readonly ReadOnlySpan<byte> Data;
@@ -36,15 +39,14 @@ namespace Soso.Net.Packets
 			var timestamp = reader.ReadLong();
 			var data = reader.ReadSpan(header.Length);
 
-			var dateTime = DateTime.FromBinary(timestamp);
-			Packet packet = new Packet(header, channel, dateTime.Ticks, messageNumber, data);
+			Packet packet = new Packet(header, channel, timestamp, messageNumber, data);
 			return packet;
 		}
 		
 		public static Packet Create(int packetType, int channel, ReadOnlySpan<byte> data)
 		{
 			PacketHeader header = new PacketHeader(data.Length, packetType);
-			Packet packet = new Packet(header, channel, DateTime.UtcNow.ToBinary(), 0, data);
+			Packet packet = new Packet(header, channel, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), 0, data);
 			return packet;
 		}
 	}

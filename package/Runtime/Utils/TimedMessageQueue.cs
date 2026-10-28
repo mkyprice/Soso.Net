@@ -11,7 +11,7 @@ namespace Soso.Net.Utils
 	public class TimedMessageQueue
 	{
 		public int Count => _queue.Count;
-		private readonly SosoConcurrentSortedQueue<double, NetworkMessage> _queue = new SosoConcurrentSortedQueue<double, NetworkMessage>();
+		private readonly SosoConcurrentSortedQueue<long, NetworkMessage> _queue = new SosoConcurrentSortedQueue<long, NetworkMessage>();
 
 		public void AddMessage(NetworkMessage message)
 		{

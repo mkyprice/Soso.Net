@@ -11,7 +11,9 @@ using Soso.Net.Messaging;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
 using Soso.Net.Serializers;
+using Soso.Net.Utils;
 using Soso.Serialization;
+using Soso.Serialization.Binary;
 using UnityEngine;
 
 namespace Soso.Net
@@ -22,7 +24,7 @@ namespace Soso.Net
 		[SerializeField] public NetworkController Network;
 		[SerializeField] public NetworkInstanceManager Instances;
 		[SerializeField] private long _localTimeDebug;
-		[SerializeField, Range(1, 10f)] private long _pingIntervalMs = 5;
+		[SerializeField, Range(1, 100)] private long _pingIntervalMs = 25;
 		
 		public MessageProcessorManager ClientProcessor = new MessageProcessorManager();
 		public MessageProcessorManager ServerProcessor = new MessageProcessorManager();
@@ -194,7 +196,14 @@ namespace Soso.Net
 		
 		public async Awaitable<bool> CreateSocketServer(ulong hostId, int virtualPort = 0)
 		{
-			Cleanup();
+			if (IsOffline)
+			{
+				Cleanup();
+			}
+			else if (IsConnected || IsClient || IsServer)
+			{
+				Disconnect();
+			}
 			
 			if (await CreateSocketServerInternal(hostId, virtualPort))
 			{
@@ -212,11 +221,7 @@ namespace Soso.Net
 			{
 				Cleanup();
 			}
-			if (IsServer == false)
-			{
-				Cleanup();
-			}
-			if (IsConnected || IsClient)
+			else if (IsClient)
 			{
 				Disconnect();
 			}
@@ -261,8 +266,31 @@ namespace Soso.Net
 
 		protected abstract Awaitable<bool> JoinSocketServerInternal(ulong host, int virtualPort = 0);
 
-		public abstract void Send<T>(T message, int channel, SOSO_SEND_TYPE sendType);
-		public abstract void Broadcast<T>(T message, int channel, SOSO_SEND_TYPE sendType);
+		private MessageSerializer _serializer = new MessageSerializer(8 * 1024 * 1024);
+		public void Send<T>(T message, int channel, SOSO_SEND_TYPE sendType)
+		{
+			lock (_serializer)
+			{
+				int length = _serializer.Write(message);
+				Send(_serializer.SendBuffer, 0, length, sendType, channel);
+			}
+		}
+
+		public void Broadcast<T>(T message, int channel, SOSO_SEND_TYPE sendType)
+		{
+			lock (_serializer)
+			{
+				int length = _serializer.Write(message);
+
+				foreach (var session in Session.GetUsers())
+				{
+					SendTo(_serializer.SendBuffer, 0, length, sendType, session.ConnectionId, channel);
+				}
+			}
+		}
+		
+		protected abstract void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, int channel);
+		protected abstract void SendTo(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ulong connectionId, int channel);
 		protected abstract void DisconnectInternal();
 		public abstract ulong GetClientId();
 

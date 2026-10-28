@@ -14,7 +14,7 @@ namespace Soso.Net
     {
         public static long Time => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + _clientServerDeltaMs;
         private static long _lastPingTime;
-        public static long PingIntervalMs = 5;
+        public static long PingIntervalMs = 15;
         
         private static readonly Dictionary<ushort, RemoteInfo> _connectionInfo = new Dictionary<ushort, RemoteInfo>();
         private static readonly int PING_CHANNEL = 0;
@@ -80,6 +80,10 @@ namespace Soso.Net
         
         private static void OnClientPingMessageReceived(PingPacket packet, long arg2, long arg3, IUserConnection connection)
         {
+            if (INetworkManager.GetInstance().IsConnected == false)
+            {
+                return;
+            }
             ushort source = packet.SourceId;
             
             long realtimeReceiveMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -126,8 +130,8 @@ namespace Soso.Net
             }
 			
             // Set remote info
-            info.AddPingTime(clientServerDeltaMs);
-            info.RemoteTime = packet.RealtimeSendMs;
+            info.AddPingTime(rtt / 2);
+            info.RemoteTime = serverTimeAtArrival;
             info.LastPingTime = realtimeReceiveMs;
             
             // Give our info

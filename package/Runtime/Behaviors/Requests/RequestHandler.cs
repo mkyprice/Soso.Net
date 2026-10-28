@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
+using Soso.Net.Utils;
 using UnityEngine;
 
 namespace Soso.Net.Behaviors.Rpc
@@ -51,6 +52,8 @@ namespace Soso.Net.Behaviors.Rpc
 	        _responses.Clear();
         }
 
+        private MessageSerializer _serializer = new MessageSerializer();
+
         private void OnRequestReceived(RequestPacket request, long arg2, long arg3, IUserConnection connection)
         {
 	        string method = $"{request.Path}({request.Args?.Length ?? 0})";
@@ -67,7 +70,9 @@ namespace Soso.Net.Behaviors.Rpc
 		        Request = request.Path,
 		        Response = response,
 	        };
-	        connection.Send(responsePacket,0, SOSO_SEND_TYPE.Reliable);
+
+	        int length = _serializer.Write(responsePacket);
+	        connection.Send(_serializer.SendBuffer, 0, length, SOSO_SEND_TYPE.Reliable, 0);
         }
 
         private void OnResponseReceived(ResponsePacket response, long arg2, long arg3, IUserConnection connection)

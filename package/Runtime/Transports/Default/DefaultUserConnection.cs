@@ -10,6 +10,7 @@ namespace Soso.Net.Transports.Default
     public class DefaultUserConnection : IUserConnection
     {
         public ulong Id => Connection.GetConnectionId();
+
         public SosoSocket Connection;
         
         private readonly MessageProcessorManager _messageProcessor;
@@ -49,33 +50,16 @@ namespace Soso.Net.Transports.Default
                     _messageProcessor.Process(this, next.Data, next.MessageNum, next.Time, next.Channel);
                 }
             }
-            
-            if (_sendQueue.Count > 0)
-            {
-                while (_sendQueue.TryDequeue(out var next))
-                {
-                    ByteWriter writer = new ByteWriter(_sendBuffer);
-
-                    writer.Write(next.Channel);
-            
-                    SosoSerializer.Serialize(ref writer, next.Data, SerializationFlags.EmbedType);
-
-                    int length = writer.Position;
-
-                    Connection.Send(new Span<byte>(_sendBuffer).Slice(0, length), 0, length);
-                }
-            }
-        }
-
-        public void Send<T>(T data, int channel, SOSO_SEND_TYPE sendType)
-        {
-            _sendQueue.Enqueue(new QueuedMessage(data, channel, DateTime.UtcNow.Ticks, 0));
         }
         
-        public void HandleMessage(ReadOnlySpan<byte> bytes, long recvTime, long messageNum)
+        public void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, int channel)
+        {
+            Connection.Send(new ReadOnlySpan<byte>(data, offset, length), channel, length);
+        }
+        
+        public void HandleMessage(ReadOnlySpan<byte> bytes, long recvTime, long messageNum, int channel)
         {
             ByteReader reader = new ByteReader(bytes);
-            int channel = reader.ReadInt();
             
             object obj = SosoSerializer.Deserialize(ref reader);
 
