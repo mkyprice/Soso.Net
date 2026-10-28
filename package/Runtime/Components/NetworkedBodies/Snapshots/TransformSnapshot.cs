@@ -4,12 +4,12 @@ namespace Soso.Net.Components.NetworkedBodies.Snapshots
 {
     public struct TransformSnapshot : ISnapshot
     {
-        public double Timestamp { get; set; }
+        public long Timestamp { get; set; }
         public Vector3 Position;
         public Quaternion Rotation;
         public Vector3 Scale;
 
-        public TransformSnapshot(double remoteTime, Vector3 position, Quaternion rotation, Vector3 scale)
+        public TransformSnapshot(long remoteTime, Vector3 position, Quaternion rotation, Vector3 scale)
         {
             Timestamp = remoteTime;
             Position = position;

@@ -3,63 +3,31 @@ using Soso.Net.Models;
 using Soso.Net.Models.Packets;
 using System;
 using System.Collections.Generic;
+using Soso.Net.Core.Instances;
 
 namespace Soso.Net.Behaviors.Rpc
 {
-	public class RpcTarget
+	public class RpcContainer
 	{
-		public readonly object Target;
+		public readonly INetworkProcessor Target;
 		public readonly ushort TargetId;
 		private readonly RpcManager _manager;
-		private readonly RpcContainer _container;
-		private readonly Dictionary<int, ISosoSync> _syncs;
-		    
-		public RpcTarget(object target, ushort targetId, RpcManager manager)
+		private readonly RpcCache _cache;
+		
+		public RpcContainer(INetworkProcessor target, RpcManager manager)
 		{
 			Target = target;
-			TargetId = targetId;
+			TargetId = Target.GetLocalId();
 			_manager = manager;
-			_container = RpcContainer.Get(target.GetType());
-			_syncs = new Dictionary<int, ISosoSync>();
-			byte syncId = 0;
-			foreach (var sync in _container.GetSosoSyncs(Target))
-			{
-				_syncs[syncId] = sync;
-				sync.Initialize(this, syncId);
-				syncId++;
-			}
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Created {name} for {target}({id}). RPCs: {rpcCount}, Syncs: {syncCount}", 
-				nameof(RpcTarget), Target.GetType().Name, TargetId, _container.Count, _syncs.Count);
-		}
-
-		public void SetSync<T>(SosoSync<T> sync, T value) 
-			where T : unmanaged
-		{
-			if (_manager.IsAuthority() == false)
-			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Cannot set value when not owner. Value: {value}", value);
-				return;
-			}
-			
-			sync.SetInternal(value);
-			
-			SyncCall call = new SyncCall()
-			{
-				Destination = DESTINATION.Client,
-				SyncTime = sync.SyncTime,
-				Time = NetworkTime.LocalTime,
-				
-				TargetId = this.TargetId,
-				SyncId = sync.Id,
-				Arg = value,
-			};
-			_manager.Send(call, 0);
+			_cache = RpcCache.Get(target.GetType());
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Created {name} for {target}({id}). RPCs: {rpcCount}", 
+				nameof(RpcContainer), Target.GetType().Name, TargetId, _cache.Count);
 		}
 		
 	    public void Rpc(Action function)
 		{
-			var method = _container.GetRpcKey(function.Method);
-			if (_container.TryGetValue(method, out var rpc) == false)
+			var method = _cache.GetRpcKey(function.Method);
+			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
@@ -86,7 +54,7 @@ namespace Soso.Net.Behaviors.Rpc
 			{
 				Destination = destination,
 				SyncTime = rpc.Rpc.SyncTime,
-				Time = NetworkTime.LocalTime,
+				Time = NetworkTime.Time,
 			};
 			call.TargetId = TargetId;
 			call.SourceId = sourceId;
@@ -96,8 +64,8 @@ namespace Soso.Net.Behaviors.Rpc
 
 		public void Rpc<T>(Action<T> function, T arg0)
 		{
-			var method = _container.GetRpcKey(function.Method);
-			if (_container.TryGetValue(method, out var rpc) == false)
+			var method = _cache.GetRpcKey(function.Method);
+			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
@@ -124,7 +92,7 @@ namespace Soso.Net.Behaviors.Rpc
 			{
 				Destination = destination,
 				SyncTime = rpc.Rpc.SyncTime,
-				Time = NetworkTime.LocalTime,
+				Time = NetworkTime.Time,
 			};
 			call.TargetId = TargetId;
 			call.SourceId = sourceId;
@@ -138,8 +106,8 @@ namespace Soso.Net.Behaviors.Rpc
 
 		public void Rpc<T0, T1>(Action<T0, T1> function, T0 arg0, T1 arg1)
 		{
-			var method = _container.GetRpcKey(function.Method);
-			if (_container.TryGetValue(method, out var rpc) == false)
+			var method = _cache.GetRpcKey(function.Method);
+			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
@@ -166,7 +134,7 @@ namespace Soso.Net.Behaviors.Rpc
 			{
 				Destination = destination,
 				SyncTime = rpc.Rpc.SyncTime,
-				Time = NetworkTime.LocalTime,
+				Time = NetworkTime.Time,
 			};
 			call.TargetId = TargetId;
 			call.SourceId = sourceId;
@@ -181,8 +149,8 @@ namespace Soso.Net.Behaviors.Rpc
 
 		public void Rpc<T0, T1, T2>(Action<T0, T1, T2> function, T0 arg0, T1 arg1, T2 arg2)
 		{
-			var method = _container.GetRpcKey(function.Method);
-			if (_container.TryGetValue(method, out var rpc) == false)
+			var method = _cache.GetRpcKey(function.Method);
+			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
@@ -209,7 +177,7 @@ namespace Soso.Net.Behaviors.Rpc
 			{
 				Destination = destination,
 				SyncTime = rpc.Rpc.SyncTime,
-				Time = NetworkTime.LocalTime,
+				Time = NetworkTime.Time,
 			};
 			call.TargetId = TargetId;
 			call.SourceId = sourceId;
@@ -225,8 +193,8 @@ namespace Soso.Net.Behaviors.Rpc
 		
 		public void Rpc<T0, T1, T2, T3>(Action<T0, T1, T2, T3> function, T0 arg0, T1 arg1, T2 arg2, T3 arg3)
 		{
-			var method = _container.GetRpcKey(function.Method);
-			if (_container.TryGetValue(method, out var rpc) == false)
+			var method = _cache.GetRpcKey(function.Method);
+			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
@@ -253,7 +221,7 @@ namespace Soso.Net.Behaviors.Rpc
 			{
 				Destination = destination,
 				SyncTime = rpc.Rpc.SyncTime,
-				Time = NetworkTime.LocalTime,
+				Time = NetworkTime.Time,
 			};
 			call.TargetId = TargetId;
 			call.SourceId = sourceId;
@@ -270,8 +238,8 @@ namespace Soso.Net.Behaviors.Rpc
 		
 		public void Rpc<T0, T1, T2, T3, T4>(Action<T0, T1, T2, T3, T4> function, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
 		{
-			var method = _container.GetRpcKey(function.Method);
-			if (_container.TryGetValue(method, out var rpc) == false)
+			var method = _cache.GetRpcKey(function.Method);
+			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
@@ -298,7 +266,7 @@ namespace Soso.Net.Behaviors.Rpc
 			{
 				Destination = destination,
 				SyncTime = rpc.Rpc.SyncTime,
-				Time = NetworkTime.LocalTime,
+				Time = NetworkTime.Time,
 			};
 			call.TargetId = TargetId;
 			call.SourceId = sourceId;
@@ -316,7 +284,7 @@ namespace Soso.Net.Behaviors.Rpc
 		
 		public void Process(RpcCall rpc)
 		{
-			if (_container.TryGetValue(rpc.Method, out var handler))
+			if (_cache.TryGetValue(rpc.Method, out var handler))
 			{
 				try
 				{
@@ -331,17 +299,6 @@ namespace Soso.Net.Behaviors.Rpc
 			else
 			{
 				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "RPC {id} not found on target {target}", rpc.SourceId, Target);
-			}
-		}
-		public void Process(SyncCall sync)
-		{
-			if (_syncs.TryGetValue(sync.SyncId, out var syncHandler))
-			{
-				syncHandler.SetInternal(sync.Arg);
-			}
-			else
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Sync ID {id} not found on target {target}", sync.SyncId, Target);
 			}
 		}
 	}

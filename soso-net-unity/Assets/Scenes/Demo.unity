@@ -200,7 +200,7 @@ MonoBehaviour:
   SnapThreshold: 2
   Rb: {fileID: 154434554}
   HistoryLimit: 32
-  RecordingInterval: 0.05000000074505806
+  RecordingIntervalMs: 5
 --- !u!114 &154434556
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -213,19 +213,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e5a1d2324bd4acba83c34dcf490624b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SosoNetworking::Soso.Net.Behaviors.NetworkIdentity
-  Instance:
+  _instance:
     _id:
       Id: 0
     _remoteInfo:
       SessionId: 0
       RemoteTime: 0
-      TimeDifference: 0
       LastPingTime: 0
-      Ping: 0
+      PingMs: 0
   IsServerAuthority: 1
   IsClientAuthority: 0
   BakedId:
     Id: 281474976710658
+  _isAuthority: 0
+  _authorityOverrideDebug: 0
 --- !u!1 &268475259
 GameObject:
   m_ObjectHideFlags: 0
@@ -1164,7 +1165,7 @@ MonoBehaviour:
   SnapThreshold: 2
   Rb: {fileID: 925789059}
   HistoryLimit: 32
-  RecordingInterval: 0.05000000074505806
+  RecordingIntervalMs: 5
 --- !u!114 &925789061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1177,19 +1178,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e5a1d2324bd4acba83c34dcf490624b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SosoNetworking::Soso.Net.Behaviors.NetworkIdentity
-  Instance:
+  _instance:
     _id:
       Id: 0
     _remoteInfo:
       SessionId: 0
       RemoteTime: 0
-      TimeDifference: 0
       LastPingTime: 0
-      Ping: 0
+      PingMs: 0
   IsServerAuthority: 1
   IsClientAuthority: 0
   BakedId:
     Id: 281474976710657
+  _isAuthority: 0
+  _authorityOverrideDebug: 0
 --- !u!1 &965828832
 GameObject:
   m_ObjectHideFlags: 0
@@ -1412,7 +1414,7 @@ MonoBehaviour:
   SnapThreshold: 2
   Rb: {fileID: 1144890420}
   HistoryLimit: 32
-  RecordingInterval: 0.05000000074505806
+  RecordingIntervalMs: 5
 --- !u!114 &1144890422
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1425,19 +1427,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e5a1d2324bd4acba83c34dcf490624b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SosoNetworking::Soso.Net.Behaviors.NetworkIdentity
-  Instance:
+  _instance:
     _id:
       Id: 0
     _remoteInfo:
       SessionId: 0
       RemoteTime: 0
-      TimeDifference: 0
       LastPingTime: 0
-      Ping: 0
+      PingMs: 0
   IsServerAuthority: 1
   IsClientAuthority: 0
   BakedId:
     Id: 281474976710659
+  _isAuthority: 0
+  _authorityOverrideDebug: 0
 --- !u!1 &1184989024
 GameObject:
   m_ObjectHideFlags: 0
@@ -2847,7 +2850,7 @@ MonoBehaviour:
   SyncPosition: 1
   SyncRotation: 1
   SyncScale: 1
-  SyncInterval: 0.05
+  SyncIntervalMs: 5
   InterpolatePosition: 1
   InterpolateRotation: 1
   InterpolateScale: 1
@@ -2864,19 +2867,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e5a1d2324bd4acba83c34dcf490624b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SosoNetworking::Soso.Net.Behaviors.NetworkIdentity
-  Instance:
+  _instance:
     _id:
       Id: 0
     _remoteInfo:
       SessionId: 0
       RemoteTime: 0
-      TimeDifference: 0
       LastPingTime: 0
-      Ping: 0
+      PingMs: 0
   IsServerAuthority: 1
   IsClientAuthority: 0
   BakedId:
     Id: 281474976710660
+  _isAuthority: 0
+  _authorityOverrideDebug: 0
 --- !u!1 &1972800780
 GameObject:
   m_ObjectHideFlags: 0
@@ -2913,12 +2917,13 @@ MonoBehaviour:
   Behavior: 0
   Spawner: {fileID: 1972800783}
   Network:
-    SendInterval: 0.05
-    TimelineOffset: 0.10000000149011612
+    SendIntervalMs: 5
+    TimelineOffsetMs: 10
     _sessionId: 0
+    Network: {fileID: 0}
   _localTimeDebug: 0
-  _pingInterval: 0.5
-  LagSimulationMs: 32
+  _pingIntervalMs: 5
+  LagSimulationMs: 0
   Ip: 127.0.0.1
   Port: 5959
   ServerUrl: 
@@ -2951,15 +2956,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3600400902344a9c862277a3432f5bb4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DefaultNamespace.DemoSpawner
-  Instance:
+  _instance:
     _id:
       Id: 0
     _remoteInfo:
       SessionId: 0
       RemoteTime: 0
-      TimeDifference: 0
       LastPingTime: 0
-      Ping: 0
+      PingMs: 0
   Prefabs: {fileID: 11400000, guid: 6d940af61e8b75a4aadf822feb05821e, type: 2}
 --- !u!1 &2053380307
 GameObject:

@@ -23,19 +23,16 @@ namespace Soso.Net.Editor
 
             var idProp = property.FindPropertyRelative(nameof(RemoteInfo.SessionId));
             var remoteTimeProp = property.FindPropertyRelative(nameof(RemoteInfo.RemoteTime));
-            var timeDiffProp = property.FindPropertyRelative(nameof(RemoteInfo.TimeDifference));
             var lastPingProp = property.FindPropertyRelative(nameof(RemoteInfo.LastPingTime));
-            var pingProp = property.FindPropertyRelative(nameof(RemoteInfo.Ping));
+            var pingProp = property.FindPropertyRelative(nameof(RemoteInfo.PingMs));
 
             CreateField(foldout, idProp, "Session Id:", p => p.uintValue.ToString());
             CreateSeparator(foldout);
-            CreateField(foldout, remoteTimeProp, "Remote Time:", p => p.doubleValue.ToString(CultureInfo.InvariantCulture));
+            CreateField(foldout, remoteTimeProp, "Remote Time:", p => p.longValue.ToString(CultureInfo.InvariantCulture));
             CreateSeparator(foldout);
-            CreateField(foldout, timeDiffProp, "Time Difference:", p => p.doubleValue.ToString(CultureInfo.InvariantCulture));
+            CreateField(foldout, lastPingProp, "Last Ping:", p => p.longValue.ToString(CultureInfo.InvariantCulture));
             CreateSeparator(foldout);
-            CreateField(foldout, lastPingProp, "Last Ping:", p => p.doubleValue.ToString(CultureInfo.InvariantCulture));
-            CreateSeparator(foldout);
-            CreateField(foldout, pingProp, "Ping:", p => p.doubleValue.ToString(CultureInfo.InvariantCulture));
+            CreateField(foldout, pingProp, "Ping:", p => p.longValue.ToString(CultureInfo.InvariantCulture));
             CreateSeparator(foldout);
 
             return root;

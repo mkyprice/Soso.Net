@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Soso.Net.Behaviors;
+using Soso.Net.Core.Instances;
 using Soso.Net.Extensions;
 using Soso.Net.Logging;
 using Soso.Net.Objects;
@@ -143,7 +144,7 @@ namespace Soso.Net.Core
 		public bool TryGetInstance<T>(NetworkInstanceId id, out T data)
 			where T : Component
 		{
-			if (TryGetIdentity(id, out var identity) && identity is BaseNetworkInstance goId && goId.gameObject.TryGetComponent(out data))
+			if (TryGetIdentity(id, out var identity) && identity is BaseNetworkIdentity goId && goId.gameObject.TryGetComponent(out data))
 			{
 				return true;
 			}

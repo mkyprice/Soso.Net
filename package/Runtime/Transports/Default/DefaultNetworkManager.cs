@@ -9,15 +9,13 @@ namespace Soso.Net.Transports.Default
 {
     public class DefaultNetworkManager : INetworkManager
     {
-        [SerializeField] public double LagSimulationMs;
+        [SerializeField] public long LagSimulationMs;
         [SerializeField] private string Ip;
         [SerializeField] private int Port;
         [SerializeField] private string ServerUrl;
         
         [SerializeField] public bool ShouldSpoofPlayer;
         [SerializeField] public ulong PlayerId;
-        
-        public override bool IsOffline => _connectionManager == null;
         
         private DefaultConnectionManager _connectionManager;
         private DefaultSocketManager _socketManager;
@@ -114,11 +112,6 @@ namespace Soso.Net.Transports.Default
             
             NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, $"{nameof(Broadcast)} - Msg: {message} Chl: {channel}");
             _socketManager.Broadcast(message, channel, sendType);
-        }
-
-        public override bool IsHost()
-        {
-            return _socketManager != null || IsOffline;
         }
 
         public override ulong GetClientId()

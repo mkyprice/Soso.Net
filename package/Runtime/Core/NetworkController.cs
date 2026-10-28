@@ -16,25 +16,23 @@ namespace Soso.Net.Behaviors
 	[Serializable]
 	public sealed class NetworkController
 	{
-		[SerializeField, Range(0, 10)] public float SendInterval = 0.05f;
-		[SerializeField] public double TimelineOffset = 0.1f;
+		[SerializeField, Range(0, 10)] public long SendIntervalMs = 5;
+		[SerializeField] public long TimelineOffsetMs = 10;
 
 		[Header("Debug - DO NOT MODIFY")] 
 		[SerializeField] private ushort _sessionId;
-		
-		public INetworkManager Network => INetworkManager.GetInstance();
 
-		public bool IsHost => Network.IsHost();
+		public INetworkManager Network;
+		public NetworkInstanceManager Instances;
 		public ushort SessionId => INetworkManager.SessionId;
 		
 		/// <summary>
 		/// Attempt to adjust to remote time given send interval and offset
 		/// </summary>
-		public double TimeAdjustment => SendInterval + TimelineOffset;
+		public long TimeAdjustment => SendIntervalMs + TimelineOffsetMs;
 		
 		private SosoConcurrentQueue<INetworkMessage> _sendQueue = new SosoConcurrentQueue<INetworkMessage>();
-		private double _lastSendTime;
-		private double _lastPingTime;
+		private long _lastSendTime;
 		private bool _isInitialized = false;
 
 		public void Initialize()
@@ -43,6 +41,8 @@ namespace Soso.Net.Behaviors
 			{
 				return;
 			}
+			Network = INetworkManager.GetInstance();
+			Instances = Network.Instances;
 			if (Network.IsOffline)
 			{
 				_isInitialized = true;
@@ -52,7 +52,7 @@ namespace Soso.Net.Behaviors
 			
 			_sessionId = INetworkManager.SessionId;
 			
-			NetworkTime.TimeAdjustment = TimeAdjustment;
+			NetworkTime.TimeAdjustmentMs = TimeAdjustment;
 
 			Network.ClientProcessor.Subscribe<NetworkPacket>(0, OnClientNetworkMessageReceived);
 			Network.ServerProcessor.Subscribe<NetworkPacket>(0, OnServerNetworkMessageReceived);
@@ -66,31 +66,35 @@ namespace Soso.Net.Behaviors
 			
 			Clear();
 			
-			Network.ClientProcessor.Unsubscribe<NetworkPacket>(0, OnClientNetworkMessageReceived);
-			Network.ServerProcessor.Unsubscribe<NetworkPacket>(0, OnServerNetworkMessageReceived);
+			Network?.ClientProcessor.Unsubscribe<NetworkPacket>(0, OnClientNetworkMessageReceived);
+			Network?.ServerProcessor.Unsubscribe<NetworkPacket>(0, OnServerNetworkMessageReceived);
 		}
 
 		public void Broadcast(NetworkInstanceId instanceId, INetworkMessage data, ushort channel)
 		{
+			if (Network.IsOffline)
+			{
+				return;
+			}
 			_sendQueue.EnqueueBack(data);
 		}
 
 		internal void Update()
 		{
-			if (_isInitialized == false)
+			if (_isInitialized == false || Network.IsOffline)
 			{
 				return;
 			}
-			double localTime = NetworkTime.LocalTime;
+			long time = NetworkTime.Time;
 			if (IsSendReady())
 			{
 				if (_sendQueue.Count > 0)
 				{
-					_lastSendTime = localTime;
+					_lastSendTime = time;
 					
 					NetworkPacket packet = new NetworkPacket();
 					packet.SourceId = SessionId;
-					packet.SendTime = localTime;
+					packet.SendTime = time;
 					packet.Messages = _sendQueue.ToArray();
 					_sendQueue.Clear();
 
@@ -112,8 +116,8 @@ namespace Soso.Net.Behaviors
 			{
 				return false;
 			}
-			double localTime = NetworkTime.LocalTime;
-			return localTime - _lastSendTime >= SendInterval;
+			long localTime = NetworkTime.Time;
+			return localTime - _lastSendTime >= SendIntervalMs;
 		}
 
 		private void ProcessIncomingMessage(RemoteInfo remoteInfo, INetworkMessage message)
@@ -125,14 +129,14 @@ namespace Soso.Net.Behaviors
 			}
 			
 			// Adjust time to be in local time
-			double adjustedLocalTime;
-			if (remoteInfo.SessionId == INetworkManager.SessionId)
+			long adjustedLocalTime;
+			if (remoteInfo.SessionId == SessionId)
 			{
 				adjustedLocalTime = message.Time;
 			}
 			else
 			{
-				adjustedLocalTime = NetworkTime.ToLocalTime(remoteInfo, message.Time);
+				adjustedLocalTime = remoteInfo.ToLocalTime(message.Time);
 			}
 			message.Time = adjustedLocalTime;
 
@@ -140,29 +144,13 @@ namespace Soso.Net.Behaviors
 			
 			// Enqueue our message
 			NetworkInstanceId target = message.SourceInstance;
-			var instance = INetworkManager.GetInstanceManager().GetOrCreateInstance(target);
+			var instance = Instances.GetOrCreateInstance(target);
 			instance.AppendMessage(message);
 		}
 
 		#region Message Callbacks
 
 		private void OnServerNetworkMessageReceived(NetworkPacket packet, long a, long b, IUserConnection connection)
-		{
-			ServerProcessPacket(packet);
-		}
-
-		private void OnClientNetworkMessageReceived(NetworkPacket packet, long a, long b, IUserConnection connection)
-		{
-			var remoteInfo = NetworkTime.GetRemoteInfo(packet.SourceId);
-			foreach (INetworkMessage message in packet.Messages)
-			{
-				ProcessIncomingMessage(remoteInfo, message);
-			}
-		}
-
-		#endregion
-
-		private void ServerProcessPacket(NetworkPacket packet)
 		{
 			List<INetworkMessage> forwardMessages = new List<INetworkMessage>();
 			var remoteInfo = NetworkTime.GetRemoteInfo(packet.SourceId);
@@ -189,5 +177,16 @@ namespace Soso.Net.Behaviors
 				Network.Broadcast(forwardPacket, 0, SOSO_SEND_TYPE.Reliable);
 			}
 		}
+
+		private void OnClientNetworkMessageReceived(NetworkPacket packet, long a, long b, IUserConnection connection)
+		{
+			var remoteInfo = NetworkTime.GetRemoteInfo(packet.SourceId);
+			foreach (INetworkMessage message in packet.Messages)
+			{
+				ProcessIncomingMessage(remoteInfo, message);
+			}
+		}
+
+		#endregion
 	}
 }

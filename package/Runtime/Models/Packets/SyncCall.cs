@@ -8,13 +8,18 @@ namespace Soso.Net.Models.Packets
     {
         public DESTINATION Destination { get; set; }
         public NetworkInstanceId SourceInstance { get; set; }
-        public double Time { get; set; }
+        public long Time { get; set; }
         public bool SyncTime { get; set; }
 
         // Sync
         public ushort TargetId;
-        public byte SyncId;
+        public int SyncId;
         public object Arg;
+
+        public override string ToString()
+        {
+            return $"Dest: {Destination} Source: {SourceInstance} Time: {Time} ST: {SyncTime} TargetId: {TargetId} SyncId: {SyncId} Arg: {Arg}";
+        }
 
         public class Serializer : SosoSerializer<SyncCall>
         {
@@ -24,7 +29,7 @@ namespace Soso.Net.Models.Packets
                 // Network Message
                 call.Destination = (DESTINATION)reader.ReadByte();
                 call.SourceInstance = (NetworkInstanceId)reader.ReadULong();
-                call.Time = reader.ReadDouble();
+                call.Time = reader.ReadLong();
                 call.SyncTime = reader.ReadBool();
                 
                 // Sync

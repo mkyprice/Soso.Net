@@ -1,6 +1,7 @@
 ﻿using Soso.Net.Models.Packets;
+using Soso.Net.Objects;
 
-namespace Soso.Net.Objects
+namespace Soso.Net.Core.Instances
 {
     public interface INetworkIdentity
     {

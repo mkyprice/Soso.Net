@@ -21,15 +21,17 @@ namespace Soso.Net
 		[SerializeField] public INetworkSpawner Spawner;
 		[SerializeField] public NetworkController Network;
 		[SerializeField] public NetworkInstanceManager Instances;
-		[SerializeField] private double _localTimeDebug;
-		[SerializeField, Range(0.01f, 10f)] private float _pingInterval = 0.5f;
+		[SerializeField] private long _localTimeDebug;
+		[SerializeField, Range(1, 10f)] private long _pingIntervalMs = 5;
 		
 		public MessageProcessorManager ClientProcessor = new MessageProcessorManager();
 		public MessageProcessorManager ServerProcessor = new MessageProcessorManager();
 		
 		public Action OnDisconnected;
-		
-		public abstract bool IsOffline { get; }
+
+		public bool IsOffline { get; private set; } = true;
+		public bool IsServer { get; private set; } = false;
+		public bool IsClient { get; private set; } = false;
 		
 		public SessionManager Session { get; private set; }
 		private bool _isConnected = false;
@@ -46,14 +48,8 @@ namespace Soso.Net
 				var session = inst.Session.Session;
 				if (session == null)
 				{
-					if (inst.IsOffline)
-					{
-						NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Starting offline mode");
-						inst.StartOfflineMode();
-						session = inst.Session.Session;
-					}
-					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "No session found. Are you offline?");
-					return session ?? default;
+					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "No session info. Are you offline?");
+					return default;
 				}
 				return session.Value;
 			}
@@ -134,12 +130,16 @@ namespace Soso.Net
 			// 	.AddMapping<INetworkMessage, NetworkMessage>()
 			// 	.AddMapping<INetworkMessage, SpawnCommand>()
 			// 	.AddMapping<INetworkMessage, DespawnCommand>();
+
+			IsOffline = true;
+			IsServer = false;
+			IsClient = false;
 			
 			Instances.Initialize();
 			
 			// Initialize Network Time
 			NetworkTime.Initialize();
-			NetworkTime.PingInterval = _pingInterval;
+			NetworkTime.PingIntervalMs = _pingIntervalMs;
 			
 			// Initialize Session
 			Session = new SessionManager(this);
@@ -148,7 +148,20 @@ namespace Soso.Net
 			// Initialize spawner
 			Spawner.InitializeSpawner();
 			
+			// Offline
+			StartOfflineMode();
+			
 			return base.InitializeAsync();
+		}
+
+		protected override Awaitable ShutdownAsync()
+		{
+			if (IsServer || IsClient)
+			{
+				Disconnect();
+			}
+			
+			return base.ShutdownAsync();
 		}
 
 		public void AddRequestHandler(object requestHandler)
@@ -169,10 +182,14 @@ namespace Soso.Net
 
 		public void StartOfflineMode()
 		{
+			IsOffline = true;
+			IsServer = true;
+			IsClient = true;
+			_isConnected = false;
 			Instances.Initialize();
 			Session.CreateOfflineSession(GetClientId());
+			Network.Initialize();
 			Spawner.InitializeSpawner();
-			_isConnected = true;
 		}
 		
 		public async Awaitable<bool> CreateSocketServer(ulong hostId, int virtualPort = 0)
@@ -181,6 +198,8 @@ namespace Soso.Net
 			
 			if (await CreateSocketServerInternal(hostId, virtualPort))
 			{
+				IsOffline = false;
+				IsServer = true;
 				return true;
 			}
 			return false;
@@ -189,9 +208,17 @@ namespace Soso.Net
 
 		public async Awaitable<bool> JoinSocketServer(ulong host, int virtualPort = 0)
 		{
-			if (IsHost() == false)
+			if (IsOffline)
 			{
 				Cleanup();
+			}
+			if (IsServer == false)
+			{
+				Cleanup();
+			}
+			if (IsConnected || IsClient)
+			{
+				Disconnect();
 			}
 			if (await JoinSocketServerInternal(host, virtualPort))
 			{
@@ -201,6 +228,8 @@ namespace Soso.Net
 					NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to negotiate ID");
 					return false;
 				}
+				IsOffline = false;
+				IsClient = true;
 				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Successfully negotiated ID {session}", SessionInfo);
 				Instances.Initialize();
 				Network.Initialize();
@@ -208,7 +237,7 @@ namespace Soso.Net
 				_isConnected = true;
 				return true;
 			}
-			Session.Clear();
+			Cleanup();
 			return false;
 		}
 		public void Disconnect()
@@ -221,6 +250,9 @@ namespace Soso.Net
 		protected virtual void Cleanup()
 		{
 			_isConnected = false;
+			IsOffline = true;
+			IsServer = false;
+			IsClient = false;
 			Spawner.Reset();
 			Network.Shutdown();
 			Instances.Reset();
@@ -232,7 +264,6 @@ namespace Soso.Net
 		public abstract void Send<T>(T message, int channel, SOSO_SEND_TYPE sendType);
 		public abstract void Broadcast<T>(T message, int channel, SOSO_SEND_TYPE sendType);
 		protected abstract void DisconnectInternal();
-		public abstract bool IsHost();
 		public abstract ulong GetClientId();
 
 		protected virtual void DoUpdate()
@@ -244,7 +275,7 @@ namespace Soso.Net
 		/// <param name="connection"></param>
 		protected void UserDisconnected(IUserConnection connection)
 		{
-			if (IsHost())
+			if (IsServer)
 			{
 				Session.RemoveUser(connection.Id);
 			}
@@ -253,7 +284,7 @@ namespace Soso.Net
 		private void Update()
 		{
 			NetworkTime.Update();
-			_localTimeDebug = NetworkTime.LocalTime;
+			_localTimeDebug = NetworkTime.Time;
 			
 			Network?.Update();
 			

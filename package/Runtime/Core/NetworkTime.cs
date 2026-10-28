@@ -12,24 +12,24 @@ namespace Soso.Net
 {
     public static class NetworkTime
     {
-        private static double _lastPingTime;
-
-        public static float PingInterval = 0.5f;
-        /// <summary>
-        /// Seconds since game start
-        /// </summary>
-        public static double LocalTime => Time.unscaledTimeAsDouble;
+        public static long Time => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + _clientServerDeltaMs;
+        private static long _lastPingTime;
+        public static long PingIntervalMs = 5;
         
-        private static Dictionary<ushort, RemoteInfo> ConnectionInfo = new Dictionary<ushort, RemoteInfo>();
-
+        private static readonly Dictionary<ushort, RemoteInfo> _connectionInfo = new Dictionary<ushort, RemoteInfo>();
         private static readonly int PING_CHANNEL = 0;
-        public static double TimeAdjustment { get; set; }
+        public static long TimeAdjustmentMs { get; set; }
+        private static long _clientServerDeltaMs;
+        private static long[] _clientServerDeltaWindow = new long[10];
+        private static int _clientServerDeltaWindowIndex = 0;
 
         public static void Initialize()
         {
             SosoSerializer.Config
                 .AddSerializer(new PingPacket.Serializer());
 
+            _clientServerDeltaMs = 0;
+            
             var network = INetworkManager.GetInstance();
             network.ClientProcessor.Subscribe<PingPacket>(PING_CHANNEL, OnClientPingMessageReceived);
             network.ServerProcessor.Subscribe<PingPacket>(PING_CHANNEL, OnServerPingMessageReceived);
@@ -37,7 +37,7 @@ namespace Soso.Net
 
         public static void Clear()
         {
-            ConnectionInfo.Clear();
+            _connectionInfo.Clear();
         }
 
         private static void Ping(ushort sessionId)
@@ -48,88 +48,87 @@ namespace Soso.Net
                 // We are not connected
                 return;
             }
-            _lastPingTime = LocalTime;
+            _lastPingTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             PingPacket ping = new PingPacket();
             ping.SourceId = sessionId;
-            ping.LocalTimeSec = _lastPingTime;
-            ping.RealtimeSendTicks = DateTimeOffset.UtcNow.Ticks;
-            NetworkLogger.Debug(CHANNEL.Default, "Sending ping with id {id} and time {time}", ping.SourceId, ping.LocalTimeSec);
+            ping.RealtimeSendMs = _lastPingTime;
+            NetworkLogger.Debug(CHANNEL.Default, "Sending ping with id {id} and time {time}", ping.SourceId, _lastPingTime);
             network.Send(ping, 0, SOSO_SEND_TYPE.Reliable);
         }
         
         public static bool IsPingReady()
         {
-            double localTime = LocalTime;
-            return localTime - _lastPingTime >= PingInterval;
+            long localTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            return localTime - _lastPingTime >= PingIntervalMs;
+        }
+        
+        public static long ToLocalTime(ushort netId, long remoteTime)
+        {
+            if (_connectionInfo.TryGetValue(netId, out var info))
+            {
+                return info.ToLocalTime(remoteTime);
+            }
+            return remoteTime;
         }
         
         private static void OnServerPingMessageReceived(PingPacket ping, long arg2, long arg3, IUserConnection connection)
         {
             // Forward message to all
+            ping.ServerTimeMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             INetworkManager.GetInstance().Broadcast(ping, PING_CHANNEL, SOSO_SEND_TYPE.Reliable);
-        }
-        
-        public static double ServerToLocalTime(double remoteTime)
-        {
-            // Server SessionId will always be 1
-            if (ConnectionInfo.TryGetValue(SessionInfo.SERVER_SESSION_ID, out var info))
-            {
-                return ToLocalTime(info, remoteTime);
-            }
-            return remoteTime;
-        }
-        
-        public static double ToLocalTime(ushort netId, double remoteTime)
-        {
-            if (ConnectionInfo.TryGetValue(netId, out var info))
-            {
-                return ToLocalTime(info, remoteTime);
-            }
-            return remoteTime;
-        }
-        
-        public static double ToLocalTime(RemoteInfo info, double remoteTime)
-        {
-            return remoteTime 
-                   + info.TimeDifference 
-                   + info.Ping * 0.001 // Convert to seconds
-                   + TimeAdjustment;
         }
         
         private static void OnClientPingMessageReceived(PingPacket packet, long arg2, long arg3, IUserConnection connection)
         {
             ushort source = packet.SourceId;
+            
+            long realtimeReceiveMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            
+            // Calculate round trip time
+            long rtt = realtimeReceiveMs - packet.RealtimeSendMs;
+            long serverTimeAtArrival = packet.ServerTimeMs + (rtt / 2);
+            var clientServerDeltaMs = serverTimeAtArrival - realtimeReceiveMs;
+            
+            // Calculate our own RTT
             if (source == INetworkManager.SessionId)
             {
+                _clientServerDeltaWindow[_clientServerDeltaWindowIndex] = clientServerDeltaMs;
+                _clientServerDeltaWindowIndex++;
+                if (_clientServerDeltaWindowIndex >= _clientServerDeltaWindow.Length) _clientServerDeltaWindowIndex = 0;
+                long avg = 0;
+                int totalAvged = 0;
+                foreach (var delta in _clientServerDeltaWindow)
+                {
+                    if (delta == 0)
+                    {
+                        break;
+                    }
+                    totalAvged++;
+                    avg += delta;
+                }
+                if (totalAvged > 0)
+                {
+                    avg /= totalAvged;
+                }
+                _clientServerDeltaMs = avg;
                 return;
             }
-
-            double localTime = LocalTime;
-            long realtimeReceived = DateTimeOffset.UtcNow.Ticks;
-            long pingTicks = realtimeReceived - packet.RealtimeSendTicks;
-            double pingSeconds = TimeSpan.FromTicks(pingTicks).TotalSeconds;
-            double ping = pingSeconds * 1000; // MS
             
-            if (ConnectionInfo.TryGetValue(source, out var info) == false)
+            
+            // Figure out other users time to get to us
+            if (_connectionInfo.TryGetValue(source, out var info) == false)
             {
                 info = new RemoteInfo()
                 {
                     SessionId = source,
-                    RemoteTime = packet.LocalTimeSec,
-                    TimeDifference = localTime - packet.LocalTimeSec - pingSeconds,
                 };
-                ConnectionInfo.Add(source, info);
+                _connectionInfo.Add(source, info);
             }
 			
-            // Sync remote time to our time
-            double remoteTime = packet.LocalTimeSec
-                + info.TimeDifference 
-                - pingSeconds; // Pretty sure we should sub ping
-            
             // Set remote info
-            info.AddPingTime(ping);
-            info.RemoteTime = remoteTime;
-            info.LastPingTime = localTime;
+            info.AddPingTime(clientServerDeltaMs);
+            info.RemoteTime = packet.RealtimeSendMs;
+            info.LastPingTime = realtimeReceiveMs;
             
             // Give our info
             var instances = INetworkManager.GetInstanceManager();
@@ -144,21 +143,20 @@ namespace Soso.Net
 
         public static RemoteInfo GetRemoteInfo(ushort sessionId)
         {
-            if (ConnectionInfo.TryGetValue(sessionId, out var info))
+            if (_connectionInfo.TryGetValue(sessionId, out var info))
             {
                 return info;
             }
             RemoteInfo remoteInfo = new RemoteInfo()
             {
                 SessionId = sessionId,
-                TimeDifference = 0,
             };
             if (sessionId == INetworkManager.SessionId)
             {
                 // This is us, we can just add it with no remote time
-                remoteInfo.TimeDifference = 0;
-                remoteInfo.RemoteTime = LocalTime;
-                ConnectionInfo.Add(sessionId, remoteInfo);
+                remoteInfo.PingMs = 0;
+                remoteInfo.RemoteTime = Time;
+                _connectionInfo.Add(sessionId, remoteInfo);
             }
             else
             {
@@ -170,11 +168,11 @@ namespace Soso.Net
         public static void Update()
         {
             var network = INetworkManager.GetInstance();
-            if (network.IsOffline || network.Session == null) return;
+            if (network.IsOffline || network.IsConnected == false || network.Session == null) return;
             if (IsPingReady())
             {
                 Ping(INetworkManager.SessionId);
-                if (network.IsHost())
+                if (network.IsServer)
                 {
                     Ping(SessionInfo.SERVER_SESSION_ID);
                 }

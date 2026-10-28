@@ -16,7 +16,7 @@ namespace Soso.Net.Models.Packets
 			get => NetworkInstanceId.Spawner;
 			set { }
 		}
-		public double Time { get; set; }
+		public long Time { get; set; }
 		public bool SyncTime { get; set; }
 		public int SpawnType;
 		public NetworkInstanceId Id;

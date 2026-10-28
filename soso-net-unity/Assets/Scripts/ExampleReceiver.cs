@@ -1,6 +1,7 @@
 using System;
 using Soso.Net.Behaviors;
 using Soso.Net.Behaviors.Rpc;
+using Soso.Net.Core.Sync;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -23,7 +24,7 @@ public class ExampleReceiver : INetworkReceiver
     {
         base.Initialize();
 
-        if (NetId.IsAuthority)
+        if (NetId.IsAuthority())
         {
             Movement.performed += OnMovementInput;
             Movement.canceled += OnMovementInput;

@@ -35,7 +35,7 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             base.Initialize();
 
-            if (NetId.IsAuthority == false)
+            if (NetId.IsAuthority() == false)
             {
                 Rb.bodyType = RigidbodyType2D.Kinematic;
             }
@@ -49,7 +49,7 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             base.FixedUpdate();
             
-            if (NetId != null && NetId.IsAuthority == false)
+            if (NetId != null && NetId.IsAuthority() == false)
             {
                 Rb.bodyType = RigidbodyType2D.Kinematic;
             }

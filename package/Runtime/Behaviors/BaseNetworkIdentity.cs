@@ -7,31 +7,24 @@ using Soso.Utils.Concurrency;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Soso.Net.Core.Instances;
 using Soso.Net.Objects;
 using UnityEngine;
 
 namespace Soso.Net.Behaviors
 {
-	public abstract class BaseNetworkInstance : MonoBehaviour, INetworkPoolable, INetworkIdentity
+	public abstract class BaseNetworkIdentity : MonoBehaviour, INetworkPoolable, INetworkIdentity, INetworkProcessor
 	{
 		[Header("DEBUG DO NOT MODIFY")]
 		[SerializeField] private NetworkInstance _instance;
 		public NetworkInstance Instance => _instance;
 		public NetworkInstanceId InstanceId => Instance?.Id ?? NetworkInstanceId.Invalid;
 		public RemoteInfo RemoteInfo => Instance.RemoteInfo;
-
-		public abstract bool IsAuthority { get; }
 		public virtual ushort AuthorityId => InstanceId.SessionId;
 		public ulong Sequence => InstanceId.SequenceNumber;
-		public double RemoteTime => RemoteInfo.RemoteTime;
-		public double Ping => RemoteInfo.Ping;
-		public bool IsServer
-		{
-			get
-			{
-				return Network == null || Network.IsHost || Network.Network.IsOffline;
-			}
-		}
+		public long RemoteTime => RemoteInfo.RemoteTime;
+		public long PingSecs => RemoteInfo.PingMs;
+		public bool IsServer => INetworkManager.GetInstance().IsServer;
 		
 		
 		private static readonly ushort MY_RPC_RECEIVER_ID = ushort.MaxValue;
@@ -61,13 +54,15 @@ namespace Soso.Net.Behaviors
 			}
 			_instance = instance;
 			_networkController = INetworkManager.GetInstance().Network;
-			_rpc = new RpcManager(Send, () => IsAuthority);
-			_rpc.AddTarget(this, MY_RPC_RECEIVER_ID);
+			_rpc = new RpcManager(Send);
+			_rpc.AddTarget(this);
 			// StartMessageThread();
 			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Initializing NetworkIdentity {name} with id {id}", name, InstanceId);
 			_isInitialized = true;
 		}
 
+		public abstract bool IsAuthority();
+		
 		protected virtual void Update()
 		{
 			if (false == _isInitialized) return;
@@ -113,8 +108,11 @@ namespace Soso.Net.Behaviors
 				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} was not initialized", name);
 				return;
 			}
-			message.SourceInstance = InstanceId;
-			message.Time = NetworkTime.LocalTime;
+			if (message.SourceInstance == 0)
+			{
+				message.SourceInstance = InstanceId;
+			}
+			message.Time = NetworkTime.Time;
 			Network.Broadcast(InstanceId, message, channel);
 		}
 
@@ -122,14 +120,19 @@ namespace Soso.Net.Behaviors
 
 		#region RPC
 
-		protected void AddRpcTarget(object target, ushort id)
+		public ushort GetLocalId()
 		{
-			_rpc.AddTarget(target, id);
+			return MY_RPC_RECEIVER_ID;
 		}
 
-		protected void RemoveRpcTarget(ushort id)
+		protected void AddRpcTarget(INetworkProcessor target)
 		{
-			_rpc.RemoveTarget(id);
+			_rpc.AddTarget(target);
+		}
+
+		protected void RemoveRpcTarget(INetworkProcessor target)
+		{
+			_rpc.RemoveTarget(target);
 		}
 		
 		protected void Rpc(Action function) => _rpc.Rpc(function, MY_RPC_RECEIVER_ID);

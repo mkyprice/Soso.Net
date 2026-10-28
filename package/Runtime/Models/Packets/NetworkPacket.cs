@@ -10,7 +10,7 @@ namespace Soso.Net.Models.Packets
 	public struct NetworkPacket
 	{
 		public ushort SourceId;
-		public double SendTime;
+		public long SendTime;
 		public INetworkMessage[] Messages;
 		
 		

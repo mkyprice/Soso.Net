@@ -11,7 +11,7 @@ namespace Soso.Net.Models.Packets
     {
         public DESTINATION Destination { get; set; }
         public NetworkInstanceId SourceInstance { get; set; }
-        public double Time { get; set; }
+        public long Time { get; set; }
         public bool SyncTime { get; set; }
 
         public ushort TargetId;
@@ -32,7 +32,7 @@ namespace Soso.Net.Models.Packets
                 // Network Message
                 call.Destination = (DESTINATION)reader.ReadByte();
                 call.SourceInstance = (NetworkInstanceId)reader.ReadULong();
-                call.Time = reader.ReadDouble();
+                call.Time = reader.ReadLong();
                 call.SyncTime = reader.ReadBool();
                 
                 // Rpc

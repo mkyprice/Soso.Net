@@ -2,6 +2,6 @@
 {
     public interface ISnapshot
     {
-        public double Timestamp { get; set; }
+        public long Timestamp { get; set; }
     }
 }

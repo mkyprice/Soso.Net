@@ -9,42 +9,53 @@ namespace Soso.Net.Models
         /// <summary>
         /// Time on remote adjusted for local
         /// </summary>
-        public double RemoteTime;
-        /// <summary>
-        /// Difference between remote and local time
-        /// </summary>
-        public double TimeDifference;
-        public double LastPingTime;
-        public double Ping;
+        public long RemoteTime;
+        public long LastPingTime;
+        public long PingMs;
 
         public override string ToString()
         {
-            return $"{nameof(RemoteInfo)}(SID:{SessionId} RT:{RemoteTime} TD:{TimeDifference})";
+            return $"{nameof(RemoteInfo)}(SID:{SessionId} RT:{RemoteTime} TD:{PingMs})";
+        }
+        
+        public long ToLocalTime(long remoteTime)
+        {
+            return remoteTime 
+                   + PingMs 
+                   // + info.PingSec
+                   + NetworkTime.TimeAdjustmentMs;
         }
 
 
-        private double[] _pingAvg = new double[16];
+        private long[] _pingAvgMs = new long[16];
         private int _pingIndex = 0;
         
-        public void AddPingTime(double ping)
+        public void AddPingTime(long ping)
         {
-            _pingAvg[_pingIndex] = ping;
-            _pingIndex = (_pingIndex + 1) % _pingAvg.Length;
-            Ping = CalculatePing();
+            _pingAvgMs[_pingIndex] = ping;
+            _pingIndex = (_pingIndex + 1) % _pingAvgMs.Length;
+            PingMs = CalculatePing();
         }
 
-        private double CalculatePing()
+        private long CalculatePing()
         {
-            if (_pingAvg == null)
+            if (_pingAvgMs == null)
             {
                 return 0;
             }
-            double sum = 0;
-            for (int i = 0; i < _pingAvg.Length; i++)
+            long sum = 0;
+            int totalCounted = 0;
+            foreach (var time in _pingAvgMs)
             {
-                sum += _pingAvg[i];
+                if (time == 0) break;
+                sum += time;
+                totalCounted++;
             }
-            return sum / _pingAvg.Length;
+
+            if (totalCounted == 0) return 0;
+            
+            long pingMs = sum / totalCounted;
+            return pingMs;
         }
     }
 }

@@ -1,12 +1,14 @@
 using System;
 using Soso.Net.Components;
+using Soso.Net.Core.Instances;
 using Soso.Net.Logging;
+using Soso.Net.Models;
 using UnityEngine;
 using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Behaviors
 {
-	public abstract class INetworkReceiver : MonoBehaviour, INetworkPoolable
+	public abstract class INetworkReceiver : MonoBehaviour, INetworkPoolable, INetworkProcessor
 	{
 		[NonSerialized] public NetworkIdentity NetId;
 		[NonSerialized] public ushort LocalId;
@@ -41,6 +43,14 @@ namespace Soso.Net.Behaviors
 		public virtual void OnAuthorityTransferred(ushort prevAuthority, ushort newAuthority) { }
 
 		#region RPC
+
+		public bool IsAuthority() => NetId?.IsAuthority() ?? true;
+		public ushort AuthorityId => NetId?.AuthorityId ?? SessionInfo.SERVER_SESSION_ID;
+
+		public ushort GetLocalId()
+		{
+			return LocalId;
+		}
 		
 		public void Rpc(Action function)
 			=> NetId.RPC.Rpc(function, LocalId);

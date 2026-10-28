@@ -23,8 +23,8 @@ namespace Soso.Net.Components.PredictedBodies
         private Transform _transform;
 
         [SerializeField, Min(1)] public int HistoryLimit = 32;
-        [SerializeField] public double RecordingInterval = 0.05f;
-        private SortedList<double, RigidBody2DState> _history = new SortedList<double, RigidBody2DState>();
+        [SerializeField] public long RecordingIntervalMs = 5;
+        private SortedList<long, RigidBody2DState> _history = new SortedList<long, RigidBody2DState>();
         private RigidBody2DState _lastState;
 
         private void Awake()
@@ -44,9 +44,9 @@ namespace Soso.Net.Components.PredictedBodies
         private void LateUpdate()
         {
             if (NetId == null) return;
-            if (NetId.IsAuthority)
+            if (NetId.IsAuthority())
             {
-                var state = BuildState(NetworkTime.LocalTime);
+                var state = BuildState(NetworkTime.Time);
                 if (HasChanged(state, _lastState))
                 {
                     SendUpdate(state);
@@ -63,7 +63,7 @@ namespace Soso.Net.Components.PredictedBodies
             }
             else
             {
-                currentState = BuildState(NetworkTime.LocalTime);
+                currentState = BuildState(NetworkTime.Time);
             }
             if (HasChanged(state, currentState) == false)
             {
@@ -111,10 +111,10 @@ namespace Soso.Net.Components.PredictedBodies
                 toIndex--;
             }
 
-            double prevDt = to.Timestamp - from.Timestamp;
-            double correctDt = to.Timestamp - corrected.Timestamp;
+            long prevDt = to.Timestamp - from.Timestamp;
+            long correctDt = to.Timestamp - corrected.Timestamp;
 
-            float multiplier = (float)(prevDt != 0 ? correctDt / prevDt : 0);
+            float multiplier = prevDt != 0 ? (float)correctDt / prevDt : 0;
             to.PositionDelta = Vector2.Lerp(Vector2.zero, to.PositionDelta, multiplier);
             to.RotationDelta = Mathf.Lerp(0, to.RotationDelta, multiplier);
             to.VelocityDelta = Vector2.Lerp(Vector2.zero, to.VelocityDelta, multiplier);
@@ -124,7 +124,7 @@ namespace Soso.Net.Components.PredictedBodies
             var currentCorrection = corrected;
             for (int i = toIndex; i < _history.Count; i++)
             {
-                double time = _history.Keys[i];
+                long time = _history.Keys[i];
                 var state = _history.Values[i];
 
                 state.Position = currentCorrection.Position + state.PositionDelta;
@@ -156,7 +156,7 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void RecordState()
         {
-            var state = BuildState(NetworkTime.LocalTime);
+            var state = BuildState(NetworkTime.Time);
             _lastState = state;
             _history[state.Timestamp] = state;
 
@@ -176,8 +176,8 @@ namespace Soso.Net.Components.PredictedBodies
         [SosoRpc(RPC_CALL_TYPE.Client, false, false)]
         private void RpcReceiveUpdate(RigidBody2DState state)
         {
-            double time = NetworkTime.ToLocalTime(NetId.AuthorityId, state.Timestamp);
-            state.Timestamp = time + RecordingInterval;
+            long time = NetworkTime.ToLocalTime(NetId.AuthorityId, state.Timestamp);
+            state.Timestamp = time + RecordingIntervalMs;
 
             ReceiveState(state);
         }
@@ -190,7 +190,7 @@ namespace Soso.Net.Components.PredictedBodies
                    SyncHelpers.HasChanged(state.AngularVelocity, lastState.AngularVelocity, AngularVelocitySensitivity);
         }
 
-        private RigidBody2DState BuildState(double timestamp)
+        private RigidBody2DState BuildState(long timestamp)
         {
             var position = Rb.position;
             var rotation = Rb.rotation;
@@ -225,24 +225,24 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void OnCollisionStay2D(Collision2D collision)
         {
-            if (NetId.IsAuthority)
+            if (NetId.IsAuthority())
             {
                 return;
             }
             
-            if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority == false)
+            if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
             }
             
-            NetId.RequestOwnership();
+            NetId.TakeOwnership();
         }
 
         private void OnCollisionExit2D(Collision2D collision)
         {
-            if (NetId.IsAuthority == false) return;
+            if (NetId.IsAuthority() == false) return;
             
-            if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority == false)
+            if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
             }
@@ -255,9 +255,7 @@ namespace Soso.Net.Components.PredictedBodies
             var sId = INetworkManager.SessionId;
             if (sId == prevAuthority || sId == newAuthority)
             {
-                _lastState = BuildState(NetworkTime.LocalTime);
-                _history.Clear();
-                _history.Add(_lastState.Timestamp, _lastState);
+                
             }
         }
 

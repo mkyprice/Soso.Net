@@ -1,17 +1,14 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using Soso.Net.Logging;
 
 namespace Soso.Net.Behaviors.Rpc
 {
-    public class RpcContainer
+    public class RpcCache
     {
         private readonly Dictionary<int, RpcMethod> _rpcCalls = new Dictionary<int, RpcMethod>();
         private readonly Dictionary<MethodInfo, int> _methodToKey = new Dictionary<MethodInfo, int>();
-        private readonly List<FieldInfo> _sosoSyncs = new List<FieldInfo>();
         
         public int Count => _rpcCalls.Count;
         public bool HasMethod(int methodId) => _rpcCalls.ContainsKey(methodId);
@@ -25,12 +22,7 @@ namespace Soso.Net.Behaviors.Rpc
                 NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to add RPC method {method}. Key has already been added",  method.Name);
             }
         }
-
-        private void AddSosoSync(FieldInfo prop)
-        {
-            _sosoSyncs.Add(prop);
-        }
-		
+        
         public int GetRpcKey(MethodInfo method)
         {
             if (_methodToKey.TryGetValue(method, out var key) == false)
@@ -40,26 +32,15 @@ namespace Soso.Net.Behaviors.Rpc
             }
             return key;
         }
-
-        internal IEnumerable<ISosoSync> GetSosoSyncs(object target)
-        {
-            foreach (var prop in _sosoSyncs.OrderBy(p => p.Name))
-            {
-                if (prop.GetValue(target) is ISosoSync sync)
-                {
-                    yield return sync;
-                }
-            }
-        }
         
-        private static readonly Dictionary<Type, RpcContainer> _cache = new Dictionary<Type, RpcContainer>();
+        private static readonly Dictionary<Type, RpcCache> _cache = new Dictionary<Type, RpcCache>();
 
         public static void ClearCache()
         {
             _cache.Clear();
         }
 
-        public static RpcContainer Get(Type type)
+        public static RpcCache Get(Type type)
         {
             if (_cache.TryGetValue(type, out var cache))
             {
@@ -71,13 +52,13 @@ namespace Soso.Net.Behaviors.Rpc
             return cache;
         }
 
-        private static RpcContainer BuildAttributeCache(Type type)
+        private static RpcCache BuildAttributeCache(Type type)
         {
             var flags = BindingFlags.Instance
                         | BindingFlags.Public
                         | BindingFlags.NonPublic
                         | BindingFlags.DeclaredOnly;
-            RpcContainer cache = new RpcContainer();
+            RpcCache cache = new RpcCache();
             foreach (MethodInfo method in GetAllMethods(type, flags))
             {
                 var rpc = method.GetCustomAttribute<SosoRpc>();
@@ -89,12 +70,6 @@ namespace Soso.Net.Behaviors.Rpc
                 NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Caching method {m}", method.Name);
             }
 
-            foreach (var syncProp in GetAllMatchingFields(type, typeof(SosoSync<>), flags))
-            {
-                cache.AddSosoSync(syncProp);
-                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Caching SosoSync {m}", syncProp.Name);
-            }
-            
             return cache;
         }
 
@@ -105,21 +80,6 @@ namespace Soso.Net.Behaviors.Rpc
                 foreach (MethodInfo method in type.GetMethods(flags))
                 {
                     yield return method;
-                }
-                type = type.BaseType;
-            }
-        }
-
-        private static IEnumerable<FieldInfo> GetAllMatchingFields(Type type, Type genericType, BindingFlags flags)
-        {
-            while (type != null)
-            {
-                foreach (var method in type.GetFields(flags))
-                {
-                    if (method.FieldType.IsGenericType && method.FieldType.GetGenericTypeDefinition() == genericType)
-                    {
-                        yield return method;
-                    }
                 }
                 type = type.BaseType;
             }

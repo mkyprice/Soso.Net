@@ -1,12 +1,13 @@
 ﻿using System.Collections.Generic;
 using Soso.Net.Extensions;
+using Soso.Net.Utils;
 using UnityEngine;
 
 namespace Soso.Net.Components.NetworkedBodies.Snapshots
 {
     public static class SnapshotInterpolation
     {
-        public static void Sample<T>(SortedList<double, T> snapshots, double localTime, out int from, out int to, out double time)
+        public static void Sample<T>(SortedList<long, T> snapshots, long localTime, out int from, out int to, out double time)
             where T : ISnapshot
         {
             to = from = -1;
@@ -22,7 +23,7 @@ namespace Soso.Net.Components.NetworkedBodies.Snapshots
                 {
                     from = i;
                     to = i + 1;
-                    time = Mathf.InverseLerp((float)a.Timestamp, (float)b.Timestamp, (float)localTime);
+                    time = NetMath.InverseLerp(a.Timestamp, b.Timestamp, localTime);
                     return;
                 }
             }
@@ -39,7 +40,7 @@ namespace Soso.Net.Components.NetworkedBodies.Snapshots
             }
         }
         
-        public static void StepInterpolation<T>(SortedList<double, T> snapshots, double localTime, out T fromSnapshot, out T toSnapshot, out double time)
+        public static void StepInterpolation<T>(SortedList<long, T> snapshots, long localTime, out T fromSnapshot, out T toSnapshot, out double time)
             where T : ISnapshot
         {
             Sample(snapshots, localTime, out int from, out int to, out time);

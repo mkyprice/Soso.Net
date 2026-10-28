@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Soso.Net.Behaviors.Rpc;
+using Soso.Net.Core.Sync;
 using Soso.Net.Extensions;
 using Soso.Net.Logging;
 using Soso.Net.Models;
@@ -11,7 +12,7 @@ using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Behaviors
 {
-	public class NetworkIdentity : BaseNetworkInstance
+	public class NetworkIdentity : BaseNetworkIdentity
 	{
 		[SerializeField] public bool IsServerAuthority;
 		[SerializeField] public bool IsClientAuthority;
@@ -28,17 +29,11 @@ namespace Soso.Net.Behaviors
 				return InstanceId.SessionId;
 			}
 		}
-
-		public override bool IsAuthority
-		{
-			get
-			{
-				_isAuthority = DetermineAuthority();
-				return _isAuthority;
-			}
-		}
+		
 		[SerializeField] private bool _isAuthority = false;
+		[SerializeField] private ushort _authorityOverrideDebug;
 		[SerializeField] private SosoSync<ushort> _authorityOverride = new SosoSync<ushort>(false);
+
 		private List<INetworkReceiver> _receivers;
 		
 #if UNITY_EDITOR
@@ -57,14 +52,13 @@ namespace Soso.Net.Behaviors
 		public override void Initialize(NetworkInstance instance)
 		{
 			base.Initialize(instance);
-
+			
 			_receivers = new List<INetworkReceiver>();
 			var receivers = GetComponentsInChildren<INetworkReceiver>(true);
 			for (ushort i = 0; i < receivers.Length; i++)
 			{
 				AddReceiver(receivers[i]);
 			}
-
 			_authorityOverride.OnChanged -= OnAuthorityChanged;
 			_authorityOverride.OnChanged += OnAuthorityChanged;
 		}
@@ -80,7 +74,7 @@ namespace Soso.Net.Behaviors
 
 		private void OnDestroy()
 		{
-			if (InstanceId != NetworkInstanceId.Invalid && IsAuthority && gameObject.scene.isLoaded)
+			if (InstanceId != NetworkInstanceId.Invalid && IsAuthority() && gameObject.scene.isLoaded)
 			{
 				INetworkManager.GetSpawner()?.Despawn(this);
 			}
@@ -110,7 +104,7 @@ namespace Soso.Net.Behaviors
 		{
 			base.ResetInstance();
 
-			_authorityOverride.SetWithoutNotify(0);
+			_authorityOverride.Reset();
 			_receivers.Clear();
 		}
 
@@ -120,12 +114,8 @@ namespace Soso.Net.Behaviors
 		{
 			if (_receivers == null || IsInitialized == false) return;
 			
-			ushort index = (ushort)(_receivers.IndexOf(receiver));
-			if (index > 0)
-			{
-				RemoveRpcTarget(index);
-				_receivers.Remove(receiver);
-			}
+			RemoveRpcTarget(receiver);
+			_receivers.Remove(receiver);
 		}
 
 		private bool AddReceiver(INetworkReceiver receiver)
@@ -137,7 +127,7 @@ namespace Soso.Net.Behaviors
 			ushort id = (ushort)(_receivers.Count);
 			receiver.Initialize(id, this);
 			_receivers.Add(receiver);
-			AddRpcTarget(receiver, id);
+			AddRpcTarget(receiver);
 			return true;
 		}
 
@@ -174,73 +164,79 @@ namespace Soso.Net.Behaviors
 
 		#region Ownership
 
-		private bool DetermineAuthority()
+		public override bool IsAuthority()
 		{
-			if (Network == null) return true;
+			if (Network == null || Network.Network.IsConnected == false)
+			{
+				_isAuthority = true;
+				return _isAuthority;
+			}
+				
+			if (IsServerAuthority && IsClientAuthority)
+			{
+				_isAuthority = true;
+				return _isAuthority;
+			}
 
-			ushort sessionId = INetworkManager.SessionId;
+			ushort sessionId;
+			if (IsServerAuthority && IsServer)
+			{
+				sessionId = SessionInfo.SERVER_SESSION_ID;
+			}
+			else
+			{
+				sessionId = INetworkManager.SessionId;
+			}
 			if (_authorityOverride != 0)
 			{
-				return _authorityOverride == sessionId || (IsServer && _authorityOverride == SessionInfo.SERVER_SESSION_ID);
+				_isAuthority = _authorityOverride == sessionId;
+				return _isAuthority;
 			}
-			if (AuthorityId == sessionId) return true;
-				
-			if (IsServerAuthority && IsServer || (IsServerAuthority && IsClientAuthority))
+			if (AuthorityId == sessionId)
 			{
-				return true;
+				_isAuthority = true;
+				return _isAuthority;
 			}
-			return false;
+			_isAuthority = false;
+			return _isAuthority;
 		}
 
-		public void RequestOwnership()
+		public void TakeOwnership()
 		{
-			var sessionId = INetworkManager.SessionId;
-			if (IsAuthority)
+			if (IsAuthority())
 			{
 				return;
 			}
 			
+			var sessionId = INetworkManager.SessionId;
 			ushort id;
-			if (InstanceId.SessionId == sessionId)
+			if (InstanceId.SessionId == sessionId || (IsServer && IsServerAuthority))
 			{
 				id = 0;
-			}
-			else if (IsServer)
-			{
-				id = SessionInfo.SERVER_SESSION_ID;
 			}
 			else
 			{
 				id = sessionId;
 			}
-			NetworkLogger.Info(CHANNEL.Default, "Requesting ownership of {a} to {b}. Current authority: {c}", InstanceId, id, AuthorityId);
-			Rpc(RpcRequestOwnership, id);
+
+			NetworkLogger.Info(CHANNEL.Default, "Attempting to take ownership of {a} to {b}. Current authority: {c}", gameObject.name, id, AuthorityId);
+			_authorityOverride.Set(id);
 		}
 
 		public void GiveUpOwnership()
 		{
-			if (IsAuthority == false)
+			if (IsAuthority() == false || _authorityOverride == 0)
 			{
 				return;
 			}
-			NetworkLogger.Info(CHANNEL.Default, "Giving up ownership of {a}", InstanceId);
+			NetworkLogger.Info(CHANNEL.Default, "Giving {id} up ownership of {a}", AuthorityId, gameObject.name);
 			_authorityOverride.Set(0);
-		}
-
-		[SosoRpc(RPC_CALL_TYPE.Client, false, true)]
-		private void RpcRequestOwnership(ushort sessionId)
-		{
-			if (IsAuthority == false || AuthorityId == sessionId)
-			{
-				return;
-			}
-			NetworkLogger.Info(CHANNEL.Default, "Request for ownership of {a} to {b}", InstanceId, sessionId);
-			_authorityOverride.Set(sessionId);
 		}
 
 		private void OnAuthorityChanged(ushort previous, ushort next)
 		{
-			NetworkLogger.Info(CHANNEL.Default, "Ownership of {a} transferred to {b}", previous, next);
+			_authorityOverrideDebug = next;
+			NetworkLogger.Info(CHANNEL.Default, "Ownership of {a} transferred from {b} to {c}", gameObject.name, previous, next);
 			foreach (var receiver in _receivers)
 			{
 				receiver.OnAuthorityTransferred(previous, next);

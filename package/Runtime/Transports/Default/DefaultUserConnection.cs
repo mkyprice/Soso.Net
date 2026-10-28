@@ -44,29 +44,16 @@ namespace Soso.Net.Transports.Default
         {
             if (_receiveQueue.Count > 0)
             {
-                long currentTime = DateTime.UtcNow.Ticks;
-                double lagSimulationMs = (DefaultNetworkManager.GetInstance() as DefaultNetworkManager)?.LagSimulationMs ?? 0;
-                long lagSimulationTicks = TimeSpan.FromMilliseconds(lagSimulationMs).Ticks;
-                long randomSimulation = (long)UnityEngine.Random.Range(-lagSimulationTicks / 2f, lagSimulationTicks / 2f);
-                lagSimulationTicks += randomSimulation;
-                while (_receiveQueue.TryPeek(out var next) && next.Time + lagSimulationTicks <= currentTime)
+                while (_receiveQueue.TryDequeue(out var next))
                 {
-                    next = _receiveQueue.Dequeue();
                     _messageProcessor.Process(this, next.Data, next.MessageNum, next.Time, next.Channel);
                 }
             }
             
             if (_sendQueue.Count > 0)
             {
-                long currentTime = DateTime.UtcNow.Ticks;
-                double lagSimulationMs = (DefaultNetworkManager.GetInstance() as DefaultNetworkManager)?.LagSimulationMs ?? 0;
-                long lagSimulationTicks = TimeSpan.FromMilliseconds(lagSimulationMs).Ticks;
-                long randomSimulation = (long)UnityEngine.Random.Range(-lagSimulationTicks / 2f, lagSimulationTicks / 2f);
-                lagSimulationTicks += randomSimulation;
-                while (_sendQueue.TryPeek(out var next) && next.Time + lagSimulationTicks <= currentTime)
+                while (_sendQueue.TryDequeue(out var next))
                 {
-                    next = _sendQueue.Dequeue();
-                
                     ByteWriter writer = new ByteWriter(_sendBuffer);
 
                     writer.Write(next.Channel);

@@ -18,7 +18,7 @@ namespace Soso.Net.Components.NetworkedBodies.Packets
         }
         
         public MODIFIED Modified;
-        public double Time;
+        public long Time;
         public Vector3 Position;
         public Quaternion Rotation;
         public Vector3 Scale;

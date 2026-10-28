@@ -16,11 +16,11 @@ using UnityEngine.SceneManagement;
 
 namespace Soso.Net.Behaviors
 {
-	public class INetworkSpawner : BaseNetworkInstance
+	public class INetworkSpawner : BaseNetworkIdentity
 	{
 		[SerializeField] public SpawnList Prefabs;
 		
-		public override bool IsAuthority => true;
+		public override bool IsAuthority() => true;
 		protected ushort SessionId { get; private set; }
 		public new NetworkController Network { get; private set; }
 		
@@ -222,7 +222,7 @@ namespace Soso.Net.Behaviors
 		/// <param name="instanceId"></param>
 		private void DestroyInstance(NetworkInstanceId instanceId)
 		{
-			if (INetworkManager.GetInstanceManager().DeleteData(instanceId, out var instance) == false || instance.Identity is BaseNetworkInstance instanceObj == false)
+			if (INetworkManager.GetInstanceManager().DeleteData(instanceId, out var instance) == false || instance.Identity is BaseNetworkIdentity instanceObj == false)
 			{
 				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Failed to delete instance {id}. Instance not found", instanceId);
 				return;
@@ -303,7 +303,7 @@ namespace Soso.Net.Behaviors
 			NetworkInstanceId id;
 			if (instance.IsServerAuthority && instance.IsClientAuthority == false)
 			{
-				if (INetworkManager.GetInstance().IsHost() == false)
+				if (INetworkManager.GetInstance().IsServer == false)
 				{
 					throw new Exception($"Trying to spawn a server controlled instance {ToString(typeValue)} as client");
 				}
@@ -444,7 +444,7 @@ namespace Soso.Net.Behaviors
 			}
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type}", cmd.Id, ToString(cmd.SpawnType));
 			var source = cmd.Id.SessionId;
-			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsHost())) return true;
+			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsServer)) return true;
 
 			int spawnable = cmd.SpawnType;
 			var scene = SceneManager.GetSceneByBuildIndex(cmd.Id.SceneId);

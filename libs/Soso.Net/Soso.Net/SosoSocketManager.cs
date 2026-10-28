@@ -16,7 +16,10 @@ namespace Soso.Net
 		{
 			foreach (SosoSocket socket in Listener.Sockets)
 			{
-				socket.Send(data, channel, 0);
+				if (socket.State.Status == CONNECTION_STATUS.Connected)
+				{
+					socket.Send(data, channel, 0);
+				}
 			}
 		}
 
