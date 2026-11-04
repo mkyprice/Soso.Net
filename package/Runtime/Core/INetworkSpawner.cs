@@ -61,12 +61,6 @@ namespace Soso.Net.Behaviors
 			
 			_idGenerator = new NetworkIdGenerator(SessionId);
 			_serverObjectIdGenerator = new NetworkIdGenerator(SessionInfo.SERVER_SESSION_ID);
-
-			if (INetworkManager.GetInstanceManager().InstanceExists(NetworkInstanceId.Spawner) == false
-				&& INetworkManager.GetInstanceManager().SetInstanceIdentity(null, this, NetworkInstanceId.Spawner) == false)
-			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not register {name}", name);
-			}
 			
 			// Initialize the starting scene
 			InitializeScene(gameObject.scene);
@@ -86,6 +80,14 @@ namespace Soso.Net.Behaviors
 			{
 				return;
 			}
+
+			// Initialize the spawner
+			if (INetworkManager.GetInstanceManager().InstanceExists(NetworkInstanceId.Spawner) == false
+			    && INetworkManager.GetInstanceManager().SetInstanceIdentity(null, this, NetworkInstanceId.Spawner) == false)
+			{
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not register {name}", name);
+			}
+			
 			// Find all NetworkId instances in the scene
 			var networkInstances = scene.GetRootGameObjects()
 				.SelectMany(go => go.GetComponentsInChildren<NetworkIdentity>(true))
