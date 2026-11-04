@@ -233,9 +233,29 @@ namespace Soso.Net.Components.PredictedBodies
             );
         }
 
+        private void OnTriggerEnter2D(Collider2D other)
+        {
+            if (TryGetBody(other.attachedRigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
+            {
+                return;
+            }
+
+            Rpc(RpcRequestOwnership, rb.NetId.AuthorityId);
+        }
+
+        private void OnTriggerExit2D(Collider2D other)
+        {
+            if (TryGetBody(other.attachedRigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
+            {
+                return;
+            }
+            
+            Rpc(RpcRequestGiveUpOwnership, rb.NetId.AuthorityId);
+        }
+
         private void OnCollisionEnter2D(Collision2D collision)
         {
-            if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority() == false)
+            if (TryGetBody(collision.rigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
             }
@@ -245,7 +265,7 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void OnCollisionExit2D(Collision2D collision)
         {
-            if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority() == false)
+            if (TryGetBody(collision.rigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
             }
@@ -295,13 +315,13 @@ namespace Soso.Net.Components.PredictedBodies
             }
         }
 
-        private bool TryGetBody(Collision2D collision, out NetworkedRigidBody2D rb)
+        private bool TryGetBody(Rigidbody2D collision, out NetworkedRigidBody2D rb)
         {
             rb = null;
             
-            if (collision.rigidbody == false) return false;
+            if (collision == false) return false;
             
-            return collision.rigidbody.TryGetComponent(out rb);
+            return collision.TryGetComponent(out rb);
         }
     }
 }
