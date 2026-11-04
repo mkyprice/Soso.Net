@@ -28,6 +28,7 @@ namespace Soso.Net.Behaviors
 		private NetworkIdGenerator _serverObjectIdGenerator;
 		private Dictionary<Scene, GameObjectPool> _pools = new Dictionary<Scene, GameObjectPool>();
 		private ConcurrentDictionary<Scene, SosoConcurrentQueue<SpawnCommand>> _spawnQueue = new ConcurrentDictionary<Scene, SosoConcurrentQueue<SpawnCommand>>();
+		private SosoConcurrentQueue<DespawnCommand> _despawnQueue = new SosoConcurrentQueue<DespawnCommand>();
 
 		private void Start()
 		{
@@ -75,6 +76,7 @@ namespace Soso.Net.Behaviors
 		{
 			base.Update();
 
+			// Spawning
 			foreach (var kvp in _spawnQueue)
 			{
 				var scene = kvp.Key;
@@ -90,6 +92,12 @@ namespace Soso.Net.Behaviors
 						InitializeIdentity(spawnable, instance, cmd.Id);
 					}
 				}
+			}
+
+			// Despawning
+			while (_despawnQueue.TryDequeue(out var despawn))
+			{
+				DestroyInstance(despawn.Id);
 			}
 		}
 
@@ -490,8 +498,8 @@ namespace Soso.Net.Behaviors
 			// We sent it and have already deleted it
 			var source = cmd.SourceId;
 			if (source == SessionId) return;
-			
-			DestroyInstance(cmd.Id);
+
+			_despawnQueue.EnqueueBack(cmd);
 		}
 		
 		#endregion
