@@ -82,19 +82,19 @@ namespace Soso.Net.Core
 			
 			if (instanceData.Identity == identity)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Instance identity {id} is already set to identity {inst}", id, identity);
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Instance identity {id} is already set to identity {inst}", id, identity.GetName());
 				return true;
 			}
 
 			if (instanceData.Identity != null)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Identity already exists for id {id}", id);
+				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Identity already exists for {name}({id}). Instance: {other}", identity.GetName(), id, instanceData.Identity.GetName());
 				return false;
 			}
 
 			instanceData.SetInstance(identity, type);
 
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Set instance {name}[{instanceId}]", identity.GetName(), id);
+			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Set instance {name}[{instanceId}]", identity.GetName(), id);
 
 			return true;
 		}
