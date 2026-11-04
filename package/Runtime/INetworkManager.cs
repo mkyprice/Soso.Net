@@ -24,7 +24,7 @@ namespace Soso.Net
 		[SerializeField] public NetworkController Network;
 		[SerializeField] public NetworkInstanceManager Instances;
 		[SerializeField] private long _localTimeDebug;
-		[SerializeField, Range(1, 100)] private long _pingIntervalMs = 25;
+		[SerializeField, Range(1, 5000)] private long _pingIntervalMs = 2000;
 		
 		public MessageProcessorManager ClientProcessor = new MessageProcessorManager();
 		public MessageProcessorManager ServerProcessor = new MessageProcessorManager();
@@ -266,7 +266,7 @@ namespace Soso.Net
 
 		protected abstract Awaitable<bool> JoinSocketServerInternal(ulong host, int virtualPort = 0);
 
-		private MessageSerializer _serializer = new MessageSerializer(8 * 1024 * 1024);
+		private MessageSerializer _serializer = new MessageSerializer(1 * 1024 * 1024);
 		public void Send<T>(T message, int channel, SOSO_SEND_TYPE sendType)
 		{
 			lock (_serializer)

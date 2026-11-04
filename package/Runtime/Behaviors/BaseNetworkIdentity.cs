@@ -73,13 +73,8 @@ namespace Soso.Net.Behaviors
 		#region Messaging
 		
 		
-		public virtual bool HandleMessage(INetworkMessage incoming)
+		public virtual void HandleMessage(INetworkMessage incoming)
 		{
-			if (_isInitialized == false)
-			{
-				return false;
-			}
-
 			switch (incoming)
 			{
 				case RpcCall rpc:
@@ -92,8 +87,6 @@ namespace Soso.Net.Behaviors
 					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Message {msg} was not recognized", incoming);
 					break;
 			}
-			
-			return true;
 		}
 
 		protected void Send(INetworkMessage message, ushort channel)

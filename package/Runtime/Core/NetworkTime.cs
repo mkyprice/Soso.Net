@@ -14,7 +14,7 @@ namespace Soso.Net
     {
         public static long Time => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + _clientServerDeltaMs;
         private static long _lastPingTime;
-        public static long PingIntervalMs = 15;
+        public static long PingIntervalMs = 2000;
         
         private static readonly Dictionary<ushort, RemoteInfo> _connectionInfo = new Dictionary<ushort, RemoteInfo>();
         private static readonly int PING_CHANNEL = 0;

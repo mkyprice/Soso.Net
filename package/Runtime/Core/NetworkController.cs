@@ -16,8 +16,8 @@ namespace Soso.Net.Behaviors
 	[Serializable]
 	public sealed class NetworkController
 	{
-		[SerializeField, Range(0, 10)] public long SendIntervalMs = 5;
-		[SerializeField] public long TimelineOffsetMs = 10;
+		[SerializeField, Range(0, 200)] public long SendIntervalMs = 50;
+		[SerializeField] public long TimelineOffsetMs = 20;
 
 		[Header("Debug - DO NOT MODIFY")] 
 		[SerializeField] private ushort _sessionId;
@@ -140,7 +140,7 @@ namespace Soso.Net.Behaviors
 			}
 			message.Time = adjustedLocalTime;
 
-			NetworkLogger.Debug(CHANNEL.Default, "Processing message {msg} from {re}", message, remoteInfo);
+			NetworkLogger.Info(CHANNEL.Default, "Processing message {msg} from {re}", message, remoteInfo);
 			
 			// Enqueue our message
 			NetworkInstanceId target = message.SourceInstance;
@@ -159,6 +159,7 @@ namespace Soso.Net.Behaviors
 			{
 				if (message.Destination == DESTINATION.Client)
 				{
+					NetworkLogger.Info(CHANNEL.Default, "Forwarding message {msg} from {re}", message, remoteInfo);
 					forwardMessages.Add(message);
 				}
 				else if (message.Destination == DESTINATION.Server)

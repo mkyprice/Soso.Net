@@ -223,6 +223,12 @@ namespace Soso.Net.Behaviors
 			_authorityOverride.Set(id);
 		}
 
+		public void SetOwner(ushort id)
+		{
+			NetworkLogger.Debug(CHANNEL.Default, "Attempting to set ownership of {a} to {b}. Current authority: {c}", gameObject.name, id, AuthorityId);
+			_authorityOverride.Set(id);
+		}
+
 		public void GiveUpOwnership()
 		{
 			if (IsAuthority() == false || _authorityOverride == 0)

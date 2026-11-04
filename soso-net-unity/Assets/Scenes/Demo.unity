@@ -198,9 +198,9 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   SnapThreshold: 2
-  Rb: {fileID: 154434554}
   HistoryLimit: 32
-  RecordingIntervalMs: 5
+  RecordingIntervalMs: 50
+  Rb: {fileID: 154434554}
 --- !u!114 &154434556
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1163,9 +1163,9 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   SnapThreshold: 2
-  Rb: {fileID: 925789059}
   HistoryLimit: 32
-  RecordingIntervalMs: 5
+  RecordingIntervalMs: 50
+  Rb: {fileID: 925789059}
 --- !u!114 &925789061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1412,9 +1412,9 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   SnapThreshold: 2
-  Rb: {fileID: 1144890420}
   HistoryLimit: 32
-  RecordingIntervalMs: 5
+  RecordingIntervalMs: 50
+  Rb: {fileID: 1144890420}
 --- !u!114 &1144890422
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2917,16 +2917,17 @@ MonoBehaviour:
   Behavior: 0
   Spawner: {fileID: 1972800783}
   Network:
-    SendIntervalMs: 5
-    TimelineOffsetMs: 10
+    SendIntervalMs: 50
+    TimelineOffsetMs: 20
     _sessionId: 0
     Network: {fileID: 0}
   _localTimeDebug: 0
-  _pingIntervalMs: 5
+  _pingIntervalMs: 2000
   LagSimulationMs: 0
   Ip: 127.0.0.1
   Port: 5959
   ServerUrl: 
+  LogLevel: 0
   ShouldSpoofPlayer: 0
   PlayerId: 0
 --- !u!4 &1972800782
@@ -3566,8 +3567,8 @@ SceneRoots:
   - {fileID: 1378698630}
   - {fileID: 1972800782}
   - {fileID: 693576530}
-  - {fileID: 802201875}
   - {fileID: 669575136}
   - {fileID: 1464627380}
   - {fileID: 965828833}
+  - {fileID: 802201875}
   - {fileID: 1220006689}

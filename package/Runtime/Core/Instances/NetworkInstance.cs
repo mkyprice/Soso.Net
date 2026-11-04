@@ -70,7 +70,7 @@ namespace Soso.Net.Objects
 			while (_timedReceiveQueue.TryDequeueFirst(out var message) && message != null)
 			{
 				long messageWait = message.Time - NetworkTime.Time;
-				if (messageWait > 0.001f)
+				if (messageWait > 0)
 				{
 					_timedReceiveQueue.Add(message.Time, message);
 					NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{id} waiting for {wait}s", Id, messageWait);
@@ -81,15 +81,18 @@ namespace Soso.Net.Objects
 			}
 
 			int processed = 0;
-			while (processed < MAX_MESSAGES_PER_UPDATE && _readyQueue.TryDequeue(out var message))
+			while (processed < MAX_MESSAGES_PER_UPDATE && _readyQueue.TryPeek(out var message))
 			{
 				NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} Processing message {message}", Id, message);
-				processed++;
-				if (Identity.HandleMessage(message) == false)
+				if (Identity.IsInitialized == false)
 				{
-					// Identity is not ready
-					_readyQueue.EnqueueFront(message);
+					NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} is not ready for message {message}", Id, message);
 					break;
+				}
+				if (_readyQueue.TryDequeue(out message))
+				{
+					Identity.HandleMessage(message);
+					processed++;
 				}
 			}
 		}

@@ -27,6 +27,7 @@ namespace Soso.Net.Behaviors
 		private NetworkIdGenerator _idGenerator;
 		private NetworkIdGenerator _serverObjectIdGenerator;
 		private Dictionary<Scene, GameObjectPool> _pools = new Dictionary<Scene, GameObjectPool>();
+		private ConcurrentDictionary<Scene, SosoConcurrentQueue<SpawnCommand>> _spawnQueue = new ConcurrentDictionary<Scene, SosoConcurrentQueue<SpawnCommand>>();
 
 		private void Start()
 		{
@@ -70,6 +71,28 @@ namespace Soso.Net.Behaviors
 		{
 		}
 
+		protected override void Update()
+		{
+			base.Update();
+
+			foreach (var kvp in _spawnQueue)
+			{
+				var scene = kvp.Key;
+				var queue = kvp.Value;
+
+				if (IsSceneInitialized(scene))
+				{
+					while (queue.TryDequeue(out var cmd))
+					{
+						NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Spawning: {Id}:{type} from queue...", cmd.Id, ToString(cmd.SpawnType));
+						int spawnable = cmd.SpawnType;
+						var instance = InstantiateIdentity(scene, spawnable, cmd.Position, cmd.Rotation);
+						InitializeIdentity(spawnable, instance, cmd.Id);
+					}
+				}
+			}
+		}
+
 		#region Scene Management
 
 		private Dictionary<ushort, bool> _sceneInitialization = new Dictionary<ushort, bool>();
@@ -111,6 +134,7 @@ namespace Soso.Net.Behaviors
 		public virtual void Clear(Scene scene)
 		{
 			_sceneInitialization.Remove(scene.GetNetworkId());
+			_spawnQueue.Remove(scene, out _);
 			
 			foreach (var instance in INetworkManager.GetInstanceManager().GetInstancesInScene(scene))
 			{
@@ -272,13 +296,6 @@ namespace Soso.Net.Behaviors
 
 		#region Spawning
 		
-		public void Catchup(IEnumerable<SpawnCommand> commands)
-		{
-			foreach (var command in commands)
-			{
-				HandleSpawnMessage(command);
-			}
-		}
 		
 		public void RegisterStaticInstance(NetworkIdentity identity)
 		{
@@ -299,6 +316,11 @@ namespace Soso.Net.Behaviors
 		
 		public NetworkIdentity Spawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation, bool syncTime = true)
 		{
+			if (IsSceneInitialized(scene) == false)
+			{
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Scene {name} is not initialized", scene.name);
+				InitializeScene(scene);
+			}
 			var instance = InstantiateIdentity(scene, typeValue, position, rotation);
 
 			ushort sceneId = scene.GetNetworkId();
@@ -348,6 +370,11 @@ namespace Soso.Net.Behaviors
 		
 		public NetworkIdentity LoadSpawn(Scene scene, int typeValue, Vector3 position, Quaternion rotation)
 		{
+			if (IsSceneInitialized(scene) == false)
+			{
+				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Scene {name} is not initialized", scene.name);
+				InitializeScene(scene);
+			}
 			var instance = InstantiateIdentity(scene, typeValue, position, rotation);
 			
 			ushort sceneId = scene.GetNetworkId();
@@ -424,47 +451,47 @@ namespace Soso.Net.Behaviors
 
 		#region Network Messages
 		
-		public override bool HandleMessage(INetworkMessage incoming)
+		public override void HandleMessage(INetworkMessage incoming)
 		{
 			switch (incoming)
 			{
 				case SpawnCommand spawn:
-					return HandleSpawnMessage(spawn);
+					HandleSpawnMessage(spawn);
+					break;
 				case DespawnCommand despawn:
-					return HandleDespawnMessage(despawn);
+					HandleDespawnMessage(despawn);
+					break;
 				default:
-					return base.HandleMessage(incoming);
+					base.HandleMessage(incoming);
+					break;
 			}
 		}
 		
-		private bool HandleSpawnMessage(SpawnCommand cmd)
+		private void HandleSpawnMessage(SpawnCommand cmd)
 		{
-			if (_sceneInitialization.TryGetValue(cmd.Id.SceneId, out bool isSceneReady) == false || isSceneReady == false)
-			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type} but scene {scene} is not ready", cmd.Id, ToString(cmd.SpawnType), cmd.Id.SceneId);
-				return false;
-			}
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type}", cmd.Id, ToString(cmd.SpawnType));
 			var source = cmd.Id.SessionId;
-			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsServer)) return true;
-
-			int spawnable = cmd.SpawnType;
+			// Ours
+			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsServer)) return;
+			
+			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type}", cmd.Id, ToString(cmd.SpawnType));
 			var scene = SceneManager.GetSceneByBuildIndex(cmd.Id.SceneId);
-			var instance = InstantiateIdentity(scene, spawnable, cmd.Position, cmd.Rotation);
-			InitializeIdentity(spawnable, instance, cmd.Id);
-			return true;
+			if (_spawnQueue.TryGetValue(scene, out var queue) == false)
+			{
+				queue = new SosoConcurrentQueue<SpawnCommand>();
+				_spawnQueue[scene] = queue;
+			}
+			queue.EnqueueBack(cmd);
 		}
 
-		private bool HandleDespawnMessage(DespawnCommand cmd)
+		private void HandleDespawnMessage(DespawnCommand cmd)
 		{
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received despawn command. Id: {Id}", cmd.Id);
 			
 			// We sent it and have already deleted it
 			var source = cmd.SourceId;
-			if (source == SessionId) return true;
+			if (source == SessionId) return;
 			
 			DestroyInstance(cmd.Id);
-			return true;
 		}
 		
 		#endregion

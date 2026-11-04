@@ -5,8 +5,9 @@ namespace Soso.Net.Core.Instances
 {
     public interface INetworkIdentity
     {
+        bool IsInitialized { get; }
         string GetName();
         void Initialize(NetworkInstance instance);
-        bool HandleMessage(INetworkMessage message);
+        void HandleMessage(INetworkMessage message);
     }
 }

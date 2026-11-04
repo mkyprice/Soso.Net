@@ -94,8 +94,6 @@ namespace Soso.Net.Components.NetworkedBodies
             {
                 if (ClientSnapshots.Count > 0)
                 {
-                    NetworkLogger.Debug(CHANNEL.Default, "Performing step interpolation on {count} snapshots", ClientSnapshots.Count);
-                    
                     SnapshotInterpolation.StepInterpolation(
                         ClientSnapshots, 
                         NetworkTime.Time, 
@@ -113,7 +111,6 @@ namespace Soso.Net.Components.NetworkedBodies
                     {
                         Apply(computed, to);
                     }
-                    NetworkLogger.Debug(CHANNEL.Default, "Finished step interpolation with {count} remaining snapshots", ClientSnapshots.Count);
                 }
             }
         }

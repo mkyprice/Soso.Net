@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using Soso.Net.Logging;
 using Soso.Net.Models;
+using Soso.Utils.Logging;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -13,12 +14,19 @@ namespace Soso.Net.Transports.Default
         [SerializeField] private string Ip;
         [SerializeField] private int Port;
         [SerializeField] private string ServerUrl;
+        [SerializeField] private LOG_LEVEL LogLevel;
         
         [SerializeField] public bool ShouldSpoofPlayer;
         [SerializeField] public ulong PlayerId;
         
         private DefaultConnectionManager _connectionManager;
         private DefaultSocketManager _socketManager;
+
+        protected override Awaitable InitializeAsync()
+        {
+            NetworkLogger.Level = LogLevel;
+            return base.InitializeAsync();
+        }
 
         private void OnValidate()
         {
@@ -28,6 +36,8 @@ namespace Soso.Net.Transports.Default
             {
                 PlayerId = (ulong)Random.Range(0, 1000);
             }
+
+            NetworkLogger.Level = LogLevel;
         }
 
         protected override Awaitable ShutdownAsync()

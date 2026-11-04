@@ -6,6 +6,7 @@ using Soso.Net.Components.NetworkedBodies;
 using Soso.Net.Components.NetworkedBodies.Helpers;
 using Soso.Net.Components.NetworkedBodies.Snapshots;
 using Soso.Net.Logging;
+using Soso.Utils;
 using UnityEngine;
 
 namespace Soso.Net.Components.PredictedBodies
@@ -17,13 +18,14 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(0.0001f, 1f)] public float LinearVelocitySensitivity = 0.05f;
         [SerializeField, Range(0.0001f, 1f)] public float AngularVelocitySensitivity = 0.05f;
         [SerializeField, Range(0.0001f, 10f)] public float SnapThreshold = 2f;
+        [SerializeField, Min(2)] public int HistoryLimit = 32;
+        [SerializeField, Range(20, 200)] public long RecordingIntervalMs = 50;
         
         public Rigidbody2D Rb;
         
         private Transform _transform;
 
-        [SerializeField, Min(1)] public int HistoryLimit = 32;
-        [SerializeField] public long RecordingIntervalMs = 5;
+        private Dictionary<ushort, long> _collisions = new Dictionary<ushort, long>();
         private SortedList<long, RigidBody2DState> _history = new SortedList<long, RigidBody2DState>();
         private RigidBody2DState _lastState;
 
@@ -38,7 +40,10 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void FixedUpdate()
         {
-            RecordState();
+            if (IsAuthority() == false)
+            {
+                RecordState();
+            }
         }
 
         private void LateUpdate()
@@ -46,7 +51,8 @@ namespace Soso.Net.Components.PredictedBodies
             if (NetId == null) return;
             if (NetId.IsAuthority())
             {
-                var state = BuildState(NetworkTime.Time);
+                var time = NetworkTime.Time;
+                var state = BuildState(time);
                 if (HasChanged(state, _lastState))
                 {
                     SendUpdate(state);
@@ -176,6 +182,10 @@ namespace Soso.Net.Components.PredictedBodies
         [SosoRpc(RPC_CALL_TYPE.Client, false, false)]
         private void RpcReceiveUpdate(RigidBody2DState state)
         {
+            if (IsAuthority())
+            {
+                return;
+            }
             long time = NetworkTime.ToLocalTime(NetId.AuthorityId, state.Timestamp);
             state.Timestamp = time + RecordingIntervalMs;
 
@@ -223,39 +233,65 @@ namespace Soso.Net.Components.PredictedBodies
             );
         }
 
-        private void OnCollisionStay2D(Collision2D collision)
+        private void OnCollisionEnter2D(Collision2D collision)
         {
-            if (NetId.IsAuthority())
-            {
-                return;
-            }
-            
             if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
             }
-            
-            NetId.TakeOwnership();
+
+            Rpc(RpcRequestOwnership, rb.NetId.AuthorityId);
         }
 
         private void OnCollisionExit2D(Collision2D collision)
         {
-            if (NetId.IsAuthority() == false) return;
-            
             if (TryGetBody(collision, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
             }
             
-            NetId.GiveUpOwnership();
+            Rpc(RpcRequestGiveUpOwnership, rb.NetId.AuthorityId);
+        }
+
+        [SosoRpc(RPC_CALL_TYPE.Server, false, true)]
+        private void RpcRequestGiveUpOwnership(ushort ownerId)
+        {
+            _collisions.Remove(ownerId);
+            if (NetId.AuthorityId == ownerId)
+            {
+                if (_collisions.Count <= 0 || _collisions.Count > 1)
+                {
+                    NetId.SetOwner(0);
+                }
+                else
+                {
+                    NetId.SetOwner(_collisions.Keys.First());
+                }
+            }
+        }
+
+        [SosoRpc(RPC_CALL_TYPE.Server, false, true)]
+        private void RpcRequestOwnership(ushort ownerId)
+        {
+            _collisions[ownerId] = NetworkTime.Time;
+            if (_collisions.Count == 1)
+            {
+                NetId.SetOwner(ownerId);
+            }
+            else
+            {
+                NetId.SetOwner(0);
+            }
         }
 
         public override void OnAuthorityTransferred(ushort prevAuthority, ushort newAuthority)
         {
             var sId = INetworkManager.SessionId;
+            
+            // Record auth transfer time
             if (sId == prevAuthority || sId == newAuthority)
             {
-                
+                _history.Clear();
             }
         }
 
