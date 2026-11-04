@@ -27,7 +27,7 @@ namespace Soso.Net.Components.NetworkedBodies
         [SerializeField] public bool SyncRotation = true;
         [SerializeField] public bool SyncScale = true;
     
-        [SerializeField, Range(0, 10)] public long SyncIntervalMs = 5;
+        [SerializeField, Range(0, 100)] public long SyncIntervalMs = 25;
     
         [Header("Interpolation")]
         [SerializeField] public bool InterpolatePosition = true;
