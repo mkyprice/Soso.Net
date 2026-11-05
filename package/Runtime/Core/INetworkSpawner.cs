@@ -215,7 +215,7 @@ namespace Soso.Net.Behaviors
 				SourceId = SessionId,
 				SyncTime = syncTime,
 			};
-			Send(cmd, 0);
+			Send(cmd, 0, SOSO_SEND_TYPE.Reliable);
 			
 			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning {name} with Id: {Id}", instance, id);
 		}
@@ -358,7 +358,7 @@ namespace Soso.Net.Behaviors
 			// Send message before initialization (very important)
 			// Rpc(RpcSpawn, cmd);
 
-			Send(cmd, 0);
+			Send(cmd, 0, SOSO_SEND_TYPE.Reliable);
 			
 			InitializeIdentity(typeValue, instance, id);
 

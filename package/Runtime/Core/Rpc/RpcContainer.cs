@@ -59,7 +59,7 @@ namespace Soso.Net.Behaviors.Rpc
 			call.TargetId = TargetId;
 			call.SourceId = sourceId;
 			call.Method = method;
-			_manager.Send(call, 0);
+			_manager.Send(call, 0, rpc.Rpc.SendType);
 		}
 
 		public void Rpc<T>(Action<T> function, T arg0)
@@ -101,7 +101,7 @@ namespace Soso.Net.Behaviors.Rpc
 			{
 				arg0
 			};
-			_manager.Send(call, 0);
+			_manager.Send(call, 0, rpc.Rpc.SendType);
 		}
 
 		public void Rpc<T0, T1>(Action<T0, T1> function, T0 arg0, T1 arg1)
@@ -144,7 +144,7 @@ namespace Soso.Net.Behaviors.Rpc
 				arg0,
 				arg1
 			};
-			_manager.Send(call, 0);
+			_manager.Send(call, 0, rpc.Rpc.SendType);
 		}
 
 		public void Rpc<T0, T1, T2>(Action<T0, T1, T2> function, T0 arg0, T1 arg1, T2 arg2)
@@ -188,7 +188,7 @@ namespace Soso.Net.Behaviors.Rpc
 				arg1,
 				arg2,
 			};
-			_manager.Send(call, 0);
+			_manager.Send(call, 0, rpc.Rpc.SendType);
 		}
 		
 		public void Rpc<T0, T1, T2, T3>(Action<T0, T1, T2, T3> function, T0 arg0, T1 arg1, T2 arg2, T3 arg3)
@@ -233,7 +233,7 @@ namespace Soso.Net.Behaviors.Rpc
 				arg2,
 				arg3
 			};
-			_manager.Send(call, 0);
+			_manager.Send(call, 0, rpc.Rpc.SendType);
 		}
 		
 		public void Rpc<T0, T1, T2, T3, T4>(Action<T0, T1, T2, T3, T4> function, T0 arg0, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
@@ -279,7 +279,7 @@ namespace Soso.Net.Behaviors.Rpc
 				arg3,
 				arg4
 			};
-			_manager.Send(call, 0);
+			_manager.Send(call, 0, rpc.Rpc.SendType);
 		}
 		
 		public void Process(RpcCall rpc)

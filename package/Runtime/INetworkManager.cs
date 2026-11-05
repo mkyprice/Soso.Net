@@ -69,6 +69,18 @@ namespace Soso.Net
 			}
 		}
 
+		public static ulong ClientId
+		{
+			get
+			{
+				if (SessionInfo == default)
+				{
+					return 0;
+				}
+				return SessionInfo.ConnectionId;
+			}
+		}
+
 		public static NetworkInstanceManager GetInstanceManager()
 		{
 			if (TryGetInstance(out INetworkManager inst) == false)
@@ -125,7 +137,8 @@ namespace Soso.Net
 				.AddSerializer(new SessionNegotiation.Serializer())
 				.AddSerializer(new RequestPacket.Serializer())
 				.AddSerializer(new ResponsePacket.Serializer())
-				.AddSerializer(new RigidBody2DState.Serializer());
+				.AddSerializer(new RigidBody2DState.Serializer())
+				.AddSerializer(new UnreliablePacket.Serializer());
 			
 			// Register mappings
 			// SosoSerializer.Config

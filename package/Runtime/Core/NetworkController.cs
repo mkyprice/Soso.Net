@@ -31,7 +31,7 @@ namespace Soso.Net.Behaviors
 		/// </summary>
 		public long TimeAdjustment => SendIntervalMs + TimelineOffsetMs;
 		
-		private Queue<INetworkMessage> _sendQueue = new Queue<INetworkMessage>();
+		private Queue<INetworkMessage> _reliableSendQueue = new Queue<INetworkMessage>();
 		private long _lastSendTime;
 		private bool _isInitialized = false;
 
@@ -57,6 +57,9 @@ namespace Soso.Net.Behaviors
 			Network.ClientProcessor.Subscribe<NetworkPacket>(0, OnClientNetworkMessageReceived);
 			Network.ServerProcessor.Subscribe<NetworkPacket>(0, OnServerNetworkMessageReceived);
 			
+			Network.ClientProcessor.Subscribe<UnreliablePacket>(0, OnUnreliableClientNetworkMessageReceived);
+			Network.ServerProcessor.Subscribe<UnreliablePacket>(0, OnUnreliableServerNetworkMessageReceived);
+			
 			_isInitialized = true;
 		}
 
@@ -68,22 +71,38 @@ namespace Soso.Net.Behaviors
 			
 			Network?.ClientProcessor.Unsubscribe<NetworkPacket>(0, OnClientNetworkMessageReceived);
 			Network?.ServerProcessor.Unsubscribe<NetworkPacket>(0, OnServerNetworkMessageReceived);
+			
+			Network?.ClientProcessor.Unsubscribe<UnreliablePacket>(0, OnUnreliableClientNetworkMessageReceived);
+			Network?.ServerProcessor.Unsubscribe<UnreliablePacket>(0, OnUnreliableServerNetworkMessageReceived);
 		}
 
-		public void Broadcast(NetworkInstanceId sourceId, INetworkMessage data, ushort channel)
+		public void Broadcast(NetworkInstanceId sourceId, INetworkMessage data, ushort channel, SOSO_SEND_TYPE sendType)
 		{
 			if (Network.IsOffline)
 			{
 				return;
 			}
-			lock (_sendQueue)
+			
+			if (data.SourceInstance == NetworkInstanceId.Invalid)
 			{
-				if (data.SourceInstance == NetworkInstanceId.Invalid)
+				data.SourceInstance = sourceId;
+			}
+			data.Time = NetworkTime.Time;
+			
+			if (sendType == SOSO_SEND_TYPE.Reliable)
+			{
+				lock (_reliableSendQueue)
 				{
-					data.SourceInstance = sourceId;
+					_reliableSendQueue.Enqueue(data);
 				}
-				data.Time = NetworkTime.Time;
-				_sendQueue.Enqueue(data);
+			}
+			else
+			{
+				UnreliablePacket packet = new UnreliablePacket()
+				{
+					Message = data,
+				};
+				Network.Send(packet, 0, sendType);
 			}
 		}
 
@@ -95,9 +114,9 @@ namespace Soso.Net.Behaviors
 			}
 			if (IsSendReady())
 			{
-				lock (_sendQueue)
+				lock (_reliableSendQueue)
 				{
-					if (_sendQueue.Count > 0)
+					if (_reliableSendQueue.Count > 0)
 					{
 						long time = NetworkTime.Time;
 						_lastSendTime = time;
@@ -105,8 +124,8 @@ namespace Soso.Net.Behaviors
 						NetworkPacket packet = new NetworkPacket();
 						packet.SourceId = SessionId;
 						packet.SendTime = time;
-						packet.Messages = _sendQueue.ToArray();
-						_sendQueue.Clear();
+						packet.Messages = _reliableSendQueue.ToArray();
+						_reliableSendQueue.Clear();
 
 						NetworkLogger.Debug(CHANNEL.Default, "Sending {count} messages in packet", packet.Messages.Length);
 						// Send to server
@@ -118,9 +137,9 @@ namespace Soso.Net.Behaviors
 
 		public void Clear()
 		{
-			lock (_sendQueue)
+			lock (_reliableSendQueue)
 			{
-				_sendQueue.Clear();
+				_reliableSendQueue.Clear();
 			}
 		}
 
@@ -163,6 +182,41 @@ namespace Soso.Net.Behaviors
 		}
 
 		#region Message Callbacks
+		
+		private void OnUnreliableServerNetworkMessageReceived(UnreliablePacket packet, long arg2, long arg3, IUserConnection connection)
+		{
+			var message = packet.Message;
+
+			if (message == null)
+			{
+				NetworkLogger.Error(CHANNEL.Default, "Unreliable packet - message was null");
+				return;
+			}
+			
+			if (message.Destination == DESTINATION.Client)
+			{
+				Network.Broadcast(packet, 0, SOSO_SEND_TYPE.Unreliable);
+			}
+			else
+			{
+				var remoteInfo = NetworkTime.GetRemoteInfo(message.SourceInstance.SessionId);
+				ProcessIncomingMessage(remoteInfo, message);
+			}
+		}
+		
+		private void OnUnreliableClientNetworkMessageReceived(UnreliablePacket packet, long arg2, long arg3, IUserConnection connection)
+		{
+			var message = packet.Message;
+			
+			if (message == null)
+			{
+				NetworkLogger.Error(CHANNEL.Default, "Unreliable packet - message was null");
+				return;
+			}
+			
+			var remoteInfo = NetworkTime.GetRemoteInfo(message.SourceInstance.SessionId);
+			ProcessIncomingMessage(remoteInfo, message);
+		}
 
 		private void OnServerNetworkMessageReceived(NetworkPacket packet, long a, long b, IUserConnection connection)
 		{

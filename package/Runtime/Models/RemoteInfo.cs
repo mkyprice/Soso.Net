@@ -6,6 +6,7 @@ namespace Soso.Net.Models
     public class RemoteInfo
     {
         public ushort SessionId;
+        public ulong ConnectionId;
         /// <summary>
         /// Time on remote adjusted for local
         /// </summary>

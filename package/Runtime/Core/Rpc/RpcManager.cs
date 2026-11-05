@@ -11,11 +11,11 @@ namespace Soso.Net.Behaviors.Rpc
     public class RpcManager
     {
 	    public readonly ushort SessionId;
-	    private readonly Action<INetworkMessage, ushort> _send;
+	    private readonly Action<INetworkMessage, ushort, SOSO_SEND_TYPE> _send;
 	    private readonly Dictionary<ushort, RpcContainer> _rpcs = new Dictionary<ushort, RpcContainer>();
 	    private readonly Dictionary<ushort, SyncContainer> _syncs = new Dictionary<ushort, SyncContainer>();
 
-	    public RpcManager(Action<INetworkMessage, ushort> send)
+	    public RpcManager(Action<INetworkMessage, ushort, SOSO_SEND_TYPE> send)
 	    {
 		    SessionId = INetworkManager.SessionId;
 		    _send = send;
@@ -61,9 +61,9 @@ namespace Soso.Net.Behaviors.Rpc
 			targetHandler.Process(sync);
 		}
 
-		public void Send(INetworkMessage message, ushort channel)
+		public void Send(INetworkMessage message, ushort channel, SOSO_SEND_TYPE sendType)
 		{
-			_send(message, channel);
+			_send(message, channel, sendType);
 		}
 
 		#region RPC Calls

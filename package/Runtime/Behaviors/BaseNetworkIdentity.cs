@@ -89,7 +89,7 @@ namespace Soso.Net.Behaviors
 			}
 		}
 
-		protected void Send(INetworkMessage message, ushort channel)
+		protected void Send(INetworkMessage message, ushort channel, SOSO_SEND_TYPE sendType)
 		{
 			if (Network == null)
 			{
@@ -101,7 +101,7 @@ namespace Soso.Net.Behaviors
 				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} was not initialized", name);
 				return;
 			}
-			Network.Broadcast(InstanceId, message, channel);
+			Network.Broadcast(InstanceId, message, channel, sendType);
 		}
 
 		#endregion

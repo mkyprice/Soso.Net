@@ -6,6 +6,7 @@ using Soso.Net.Components.NetworkedBodies;
 using Soso.Net.Components.NetworkedBodies.Helpers;
 using Soso.Net.Components.NetworkedBodies.Snapshots;
 using Soso.Net.Logging;
+using Soso.Net.Models;
 using Soso.Utils;
 using UnityEngine;
 
@@ -172,7 +173,7 @@ namespace Soso.Net.Components.PredictedBodies
             Rpc(RpcReceiveUpdate, state);
         }
 
-        [SosoRpc(RPC_CALL_TYPE.Client, false, false)]
+        [SosoRpc(RPC_CALL_TYPE.Client, false, false, SOSO_SEND_TYPE.Unreliable)]
         private void RpcReceiveUpdate(RigidBody2DState state)
         {
             if (IsAuthority())

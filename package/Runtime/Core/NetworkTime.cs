@@ -85,6 +85,7 @@ namespace Soso.Net
                 return;
             }
             ushort source = packet.SourceId;
+            ulong connectionId = connection.Id;
             
             long realtimeReceiveMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             
@@ -125,6 +126,7 @@ namespace Soso.Net
                 info = new RemoteInfo()
                 {
                     SessionId = source,
+                    ConnectionId = connectionId,
                 };
                 _connectionInfo.Add(source, info);
             }
@@ -158,6 +160,7 @@ namespace Soso.Net
             if (sessionId == INetworkManager.SessionId)
             {
                 // This is us, we can just add it with no remote time
+                remoteInfo.ConnectionId = INetworkManager.ClientId;
                 remoteInfo.PingMs = 0;
                 remoteInfo.RemoteTime = Time;
                 _connectionInfo.Add(sessionId, remoteInfo);

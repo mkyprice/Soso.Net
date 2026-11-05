@@ -140,7 +140,7 @@ namespace Soso.Net.Core.Sync
                         SyncId = SyncId,
                         Arg = value,
                     };
-                    _manager.Send(call, 0);
+                    _manager.Send(call, 0, SOSO_SEND_TYPE.Reliable);
                 }
             }
             else
@@ -168,7 +168,7 @@ namespace Soso.Net.Core.Sync
                 SyncId = SyncId,
                 Arg = _dirtyValue,
             };
-            _manager.Send(call, 0);
+            _manager.Send(call, 0, SOSO_SEND_TYPE.Reliable);
             _isDirty = false;
         }
 
