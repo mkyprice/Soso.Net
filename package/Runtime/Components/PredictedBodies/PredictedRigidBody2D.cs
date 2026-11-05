@@ -20,15 +20,15 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(0.0001f, 10f)] public float SnapThreshold = 2f;
         [SerializeField, Min(2)] public int HistoryLimit = 32;
         [SerializeField, Range(20, 200)] public long RecordingIntervalMs = 50;
+        [SerializeField, Range(20, 200)] public long SendIntervalMs = 50;
         [SerializeField] public bool AllowAuthoritySwap = false;
         
         public Rigidbody2D Rb;
-        
-        private Transform _transform;
 
         private Dictionary<ushort, long> _collisions = new Dictionary<ushort, long>();
         private SortedList<long, RigidBody2DState> _history = new SortedList<long, RigidBody2DState>();
         private RigidBody2DState _lastState;
+        private long _lastSendTime;
 
         private void Awake()
         {
@@ -36,7 +36,6 @@ namespace Soso.Net.Components.PredictedBodies
             {
                 Rb = GetComponent<Rigidbody2D>();
             }
-            _transform = Rb.transform;
         }
 
         private void FixedUpdate()
@@ -50,15 +49,22 @@ namespace Soso.Net.Components.PredictedBodies
         private void LateUpdate()
         {
             if (NetId == null) return;
-            if (NetId.IsAuthority())
+            if (NetId.IsAuthority() && IsSendReady())
             {
                 var time = NetworkTime.Time;
                 var state = BuildState(time);
                 if (HasChanged(state, _lastState))
                 {
+                    _lastSendTime = time;
                     SendUpdate(state);
                 }
             }
+        }
+
+        private bool IsSendReady()
+        {
+            var time = NetworkTime.Time;
+            return _lastSendTime + SendIntervalMs <= time;
         }
 
         private void ReceiveState(RigidBody2DState state)
@@ -80,20 +86,6 @@ namespace Soso.Net.Components.PredictedBodies
             RecordState();
 
             if (_history.Count < 2)
-            {
-                return;
-            }
-
-            var oldestState = _history.Values[0];
-            var newestState = _history.Values[_history.Count - 1];
-
-            if (state.Timestamp < oldestState.Timestamp)
-            {
-                ApplyState(state);
-                return;
-            }
-
-            if (newestState.Timestamp < oldestState.Timestamp)
             {
                 ApplyState(state);
                 return;
