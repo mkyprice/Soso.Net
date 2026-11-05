@@ -18,7 +18,7 @@ namespace Soso.Net.Models.Packets
 
         public override string ToString()
         {
-            return $"Dest: {Destination} Source: {SourceInstance} Time: {Time} ST: {SyncTime} TargetId: {TargetId} SyncId: {SyncId} Arg: {Arg}";
+            return $"{nameof(SyncCall)}-{Destination}Src:{SourceInstance} Time:{Time} ST:{SyncTime} TId:{TargetId} Sid:{SyncId} Val:{Arg}";
         }
 
         public class Serializer : SosoSerializer<SyncCall>

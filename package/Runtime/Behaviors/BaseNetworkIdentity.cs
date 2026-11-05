@@ -101,11 +101,6 @@ namespace Soso.Net.Behaviors
 				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} was not initialized", name);
 				return;
 			}
-			if (message.SourceInstance == 0)
-			{
-				message.SourceInstance = InstanceId;
-			}
-			message.Time = NetworkTime.Time;
 			Network.Broadcast(InstanceId, message, channel);
 		}
 
