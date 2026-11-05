@@ -154,7 +154,7 @@ namespace Soso.Net.Behaviors
 			}
 			message.Time = adjustedLocalTime;
 
-			NetworkLogger.Info(CHANNEL.Default, "Processing message {msg} from {re}", message, remoteInfo);
+			NetworkLogger.Debug(CHANNEL.Default, "Processing message {msg} from {re}", message, remoteInfo);
 			
 			// Enqueue our message
 			NetworkInstanceId target = message.SourceInstance;
@@ -173,7 +173,7 @@ namespace Soso.Net.Behaviors
 			{
 				if (message.Destination == DESTINATION.Client)
 				{
-					NetworkLogger.Info(CHANNEL.Default, "Forwarding message {msg} from {re}", message, remoteInfo);
+					NetworkLogger.Debug(CHANNEL.Default, "Forwarding message {msg} from {re}", message, remoteInfo);
 					forwardMessages.Add(message);
 				}
 				else if (message.Destination == DESTINATION.Server)
