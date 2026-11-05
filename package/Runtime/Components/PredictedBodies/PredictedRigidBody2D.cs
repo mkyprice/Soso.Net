@@ -20,6 +20,7 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(0.0001f, 10f)] public float SnapThreshold = 2f;
         [SerializeField, Min(2)] public int HistoryLimit = 32;
         [SerializeField, Range(20, 200)] public long RecordingIntervalMs = 50;
+        [SerializeField] public bool AllowAuthoritySwap = false;
         
         public Rigidbody2D Rb;
         
@@ -235,6 +236,8 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void OnTriggerEnter2D(Collider2D other)
         {
+            if (AllowAuthoritySwap == false) return;
+            
             if (TryGetBody(other.attachedRigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
@@ -245,6 +248,8 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void OnTriggerExit2D(Collider2D other)
         {
+            if (AllowAuthoritySwap == false) return;
+
             if (TryGetBody(other.attachedRigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
@@ -255,6 +260,8 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void OnCollisionEnter2D(Collision2D collision)
         {
+            if (AllowAuthoritySwap == false) return;
+
             if (TryGetBody(collision.rigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
@@ -265,6 +272,8 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void OnCollisionExit2D(Collision2D collision)
         {
+            if (AllowAuthoritySwap == false) return;
+
             if (TryGetBody(collision.rigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
@@ -276,6 +285,8 @@ namespace Soso.Net.Components.PredictedBodies
         [SosoRpc(RPC_CALL_TYPE.Server, false, true)]
         private void RpcRequestGiveUpOwnership(ushort ownerId)
         {
+            if (AllowAuthoritySwap == false) return;
+
             _collisions.Remove(ownerId);
             if (NetId.AuthorityId == ownerId)
             {
@@ -293,6 +304,8 @@ namespace Soso.Net.Components.PredictedBodies
         [SosoRpc(RPC_CALL_TYPE.Server, false, true)]
         private void RpcRequestOwnership(ushort ownerId)
         {
+            if (AllowAuthoritySwap == false) return;
+
             _collisions[ownerId] = NetworkTime.Time;
             if (_collisions.Count == 1)
             {
