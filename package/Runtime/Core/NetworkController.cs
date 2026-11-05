@@ -31,7 +31,7 @@ namespace Soso.Net.Behaviors
 		/// </summary>
 		public long TimeAdjustment => SendIntervalMs + TimelineOffsetMs;
 		
-		private SosoConcurrentQueue<INetworkMessage> _sendQueue = new SosoConcurrentQueue<INetworkMessage>();
+		private Queue<INetworkMessage> _sendQueue = new Queue<INetworkMessage>();
 		private long _lastSendTime;
 		private bool _isInitialized = false;
 
@@ -70,13 +70,21 @@ namespace Soso.Net.Behaviors
 			Network?.ServerProcessor.Unsubscribe<NetworkPacket>(0, OnServerNetworkMessageReceived);
 		}
 
-		public void Broadcast(NetworkInstanceId instanceId, INetworkMessage data, ushort channel)
+		public void Broadcast(NetworkInstanceId sourceId, INetworkMessage data, ushort channel)
 		{
 			if (Network.IsOffline)
 			{
 				return;
 			}
-			_sendQueue.EnqueueBack(data);
+			lock (_sendQueue)
+			{
+				if (data.SourceInstance == NetworkInstanceId.Invalid)
+				{
+					data.SourceInstance = sourceId;
+				}
+				data.Time = NetworkTime.Time;
+				_sendQueue.Enqueue(data);
+			}
 		}
 
 		internal void Update()
@@ -85,29 +93,35 @@ namespace Soso.Net.Behaviors
 			{
 				return;
 			}
-			long time = NetworkTime.Time;
 			if (IsSendReady())
 			{
-				if (_sendQueue.Count > 0)
+				lock (_sendQueue)
 				{
-					_lastSendTime = time;
+					if (_sendQueue.Count > 0)
+					{
+						long time = NetworkTime.Time;
+						_lastSendTime = time;
 					
-					NetworkPacket packet = new NetworkPacket();
-					packet.SourceId = SessionId;
-					packet.SendTime = time;
-					packet.Messages = _sendQueue.ToArray();
-					_sendQueue.Clear();
+						NetworkPacket packet = new NetworkPacket();
+						packet.SourceId = SessionId;
+						packet.SendTime = time;
+						packet.Messages = _sendQueue.ToArray();
+						_sendQueue.Clear();
 
-					NetworkLogger.Debug(CHANNEL.Default, "Sending {count} messages in packet", packet.Messages.Length);
-					// Send to server
-					Network.Send(packet, 0, SOSO_SEND_TYPE.Reliable);
+						NetworkLogger.Debug(CHANNEL.Default, "Sending {count} messages in packet", packet.Messages.Length);
+						// Send to server
+						Network.Send(packet, 0, SOSO_SEND_TYPE.Reliable);
+					}
 				}
 			}
 		}
 
 		public void Clear()
 		{
-			_sendQueue.Clear();
+			lock (_sendQueue)
+			{
+				_sendQueue.Clear();
+			}
 		}
 
 		private bool IsSendReady()
@@ -152,7 +166,7 @@ namespace Soso.Net.Behaviors
 
 		private void OnServerNetworkMessageReceived(NetworkPacket packet, long a, long b, IUserConnection connection)
 		{
-			List<INetworkMessage> forwardMessages = new List<INetworkMessage>();
+			List<INetworkMessage> forwardMessages = new List<INetworkMessage>(packet.Messages.Length);
 			var remoteInfo = NetworkTime.GetRemoteInfo(packet.SourceId);
 
 			foreach (INetworkMessage message in packet.Messages)
