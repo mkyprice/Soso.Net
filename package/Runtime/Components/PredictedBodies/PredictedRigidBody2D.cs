@@ -24,6 +24,7 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(20, 5000)] public long SendIntervalMs = 500;
         [SerializeField, Range(0, 50)] public long MinSendIntervalMs = 33;
         [SerializeField] public bool AllowAuthoritySwap = false;
+        [SerializeField, Range(0, 1000)] public long AuthorityDropDelayMs = 200;
         [SerializeField] public bool Reliable;
         
         public Rigidbody2D Rb;
@@ -33,6 +34,12 @@ namespace Soso.Net.Components.PredictedBodies
         private RigidBody2DState _lastSentState;
         private long _lastSendTime;
         private long _lastRecordTime;
+        
+        // Authority
+        private int _localContactCount;
+        private bool _pendingAuthGiveUp;
+        private long _contactExitTime;
+        private ushort _pendingGiveUpOwnerId;
 
         private void Awake()
         {
@@ -42,11 +49,23 @@ namespace Soso.Net.Components.PredictedBodies
             }
         }
 
+        private void OnDisable()
+        {
+            _pendingAuthGiveUp = false;
+            _localContactCount = 0;
+        }
+
         private void FixedUpdate()
         {
             if (IsRecordReady() || _history.Count < 2)
             {
                 RecordState();
+            }
+            
+            if (_pendingAuthGiveUp && NetworkTime.Time >= _contactExitTime + AuthorityDropDelayMs)
+            {
+                _pendingAuthGiveUp = false;
+                Rpc(RpcRequestGiveUpOwnership, _pendingGiveUpOwnerId, BuildState(NetworkTime.Time));
             }
         }
 
@@ -264,52 +283,54 @@ namespace Soso.Net.Components.PredictedBodies
             );
         }
 
-        private void OnTriggerEnter2D(Collider2D other)
-        {
-            if (AllowAuthoritySwap == false) return;
-            
-            if (TryGetBody(other.attachedRigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
-            {
-                return;
-            }
-
-            Rpc(RpcRequestOwnership, rb.NetId.AuthorityId);
-        }
-
+        private void OnTriggerEnter2D(Collider2D other) 
+            => HandleBodyEntered(other.attachedRigidbody);
         private void OnTriggerExit2D(Collider2D other)
-        {
-            if (AllowAuthoritySwap == false) return;
-
-            if (TryGetBody(other.attachedRigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
-            {
-                return;
-            }
-            
-            Rpc(RpcRequestGiveUpOwnership, rb.NetId.AuthorityId, BuildState(NetworkTime.Time));
-        }
-
+            => HandleBodyExited(other.attachedRigidbody);
         private void OnCollisionEnter2D(Collision2D collision)
+            => HandleBodyEntered(collision.rigidbody);
+        private void OnCollisionExit2D(Collision2D collision) 
+            => HandleBodyExited(collision.rigidbody);
+
+        private void HandleBodyEntered(Rigidbody2D otherRb)
         {
             if (AllowAuthoritySwap == false) return;
 
-            if (TryGetBody(collision.rigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
+            if (TryGetBody(otherRb, out var rb) == false || rb.NetId.IsAuthority() == false)
             {
                 return;
             }
 
-            Rpc(RpcRequestOwnership, rb.NetId.AuthorityId);
-        }
-
-        private void OnCollisionExit2D(Collision2D collision)
-        {
-            if (AllowAuthoritySwap == false) return;
-
-            if (TryGetBody(collision.rigidbody, out var rb) == false || rb.NetId.IsAuthority() == false)
+            _localContactCount++;
+            if (_pendingAuthGiveUp)
             {
-                return;
+                _pendingAuthGiveUp = false;
             }
             
-            Rpc(RpcRequestGiveUpOwnership, rb.NetId.AuthorityId, BuildState(NetworkTime.Time));
+            // Only request on initial contact
+            if (_localContactCount == 1)
+            {
+                Rpc(RpcRequestOwnership, rb.NetId.AuthorityId);
+            }
+        }
+
+        private void HandleBodyExited(Rigidbody2D otherRb)
+        {
+            if (AllowAuthoritySwap == false) return;
+
+            if (TryGetBody(otherRb, out var rb) == false || rb.NetId.IsAuthority() == false)
+            {
+                return;
+            }
+
+            _localContactCount = Math.Max(0, _localContactCount - 1);
+
+            if (_localContactCount == 0)
+            {
+                _contactExitTime = NetworkTime.Time;
+                _pendingGiveUpOwnerId = rb.NetId.AuthorityId;
+                _pendingAuthGiveUp = true;
+            }
         }
 
         [SosoRpc(RPC_CALL_TYPE.Server, false, true)]
@@ -318,23 +339,23 @@ namespace Soso.Net.Components.PredictedBodies
             if (AllowAuthoritySwap == false) return;
 
             _collisions.Remove(ownerId);
-            if (NetId.AuthorityId == ownerId)
+            
+            // Always apply outgoing authority's state
+            if (NetId.AuthorityId == ownerId && IsAuthority() == false)
             {
-                // Always apply outgoing authority's state
-                if (IsAuthority() == false)
-                {
-                    long time = NetworkTime.ToLocalTime(ownerId, state.Timestamp);
-                    state.Timestamp = time;
-                    ReceiveState(state);
-                }
-                if (_collisions.Count == 1)
-                {
-                    NetId.SetOwner(_collisions.Keys.First());
-                }
-                else
-                {
-                    NetId.SetOwner(0);
-                }
+                long time = NetworkTime.ToLocalTime(ownerId, state.Timestamp);
+                state.Timestamp = time;
+                ReceiveState(state);
+            }
+            
+            if (_collisions.Count == 1)
+            {
+                var nextOwner = _collisions.Keys.First();
+                NetId.SetOwner(nextOwner);
+            }
+            else
+            {
+                NetId.SetOwner(0);
             }
         }
 
