@@ -18,12 +18,11 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(0.0001f, 1f)] public float RotationSensitivity = 0.05f;
         [SerializeField, Range(0.0001f, 1f)] public float LinearVelocitySensitivity = 0.05f;
         [SerializeField, Range(0.0001f, 1f)] public float AngularVelocitySensitivity = 0.05f;
-        [SerializeField, Range(0.0001f, 10f)] public float SnapThreshold = 2f;
         [SerializeField, Min(2)] public int HistoryLimit = 32;
         [SerializeField, Range(20, 200)] public long RecordingIntervalMs = 50;
         [SerializeField] public bool OnlySyncOnChange = false;
         [SerializeField, Range(20, 5000)] public long SendIntervalMs = 500;
-        [SerializeField, Range(20, 500)] public long MinSendIntervalMs = 100;
+        [SerializeField, Range(0, 50)] public long MinSendIntervalMs = 33;
         [SerializeField] public bool AllowAuthoritySwap = false;
         [SerializeField] public bool Reliable;
         
@@ -133,22 +132,30 @@ namespace Soso.Net.Components.PredictedBodies
             }
 
             float multiplier = prevDt != 0 ? Mathf.Clamp01((float)correctDt / prevDt) : 0;
-            to.PositionDelta = Vector2.Lerp(Vector2.zero, to.PositionDelta, multiplier);
-            to.RotationDelta = Mathf.Lerp(0, to.RotationDelta, multiplier);
-            to.VelocityDelta = Vector2.Lerp(Vector2.zero, to.VelocityDelta, multiplier);
-            to.AngularVelocityDelta = Mathf.Lerp(0, to.AngularVelocityDelta, multiplier);
-            _history[to.Timestamp] = to;
-
             var currentCorrection = corrected;
             for (int i = toIndex; i < _history.Count; i++)
             {
                 long time = _history.Keys[i];
                 var state = _history.Values[i];
+                var prevHistoryState = i > 0 ? _history.Values[i - 1] : from;
 
-                state.Position = currentCorrection.Position + state.PositionDelta;
-                state.Rotation = currentCorrection.Rotation + state.RotationDelta;
-                state.Velocity = currentCorrection.Velocity + state.VelocityDelta;
-                state.AngularVelocity = currentCorrection.AngularVelocity + state.AngularVelocityDelta;
+                float stepScale = (i == toIndex) ? multiplier : 1f;
+                // Need the correct time diff
+                long stepMs = (i == toIndex) ? correctDt : (time - prevHistoryState.Timestamp);
+                float stepDt = Mathf.Max(0f, stepMs * 0.001f); // Dt in secs
+
+                Vector2 velDelta = currentCorrection.Velocity - prevHistoryState.Velocity;
+                float angVelDelta = currentCorrection.AngularVelocity - prevHistoryState.AngularVelocity;
+                
+                Vector2 posStep = (state.PositionDelta * stepScale) + (velDelta * stepDt);
+                float rotStep = (state.RotationDelta * stepScale) + (angVelDelta * stepDt);
+                Vector2 velStep = state.VelocityDelta * stepScale;
+                float angVelStep = state.AngularVelocityDelta * stepScale;
+
+                state.Position = currentCorrection.Position + posStep;
+                state.Rotation = currentCorrection.Rotation + rotStep;
+                state.Velocity = currentCorrection.Velocity + velStep;
+                state.AngularVelocity = currentCorrection.AngularVelocity + angVelStep;
 
                 _history[time] = state;
                 currentCorrection = state;
@@ -162,13 +169,6 @@ namespace Soso.Net.Components.PredictedBodies
             Rb.rotation = state.Rotation;
             Rb.linearVelocity = state.Velocity;
             Rb.angularVelocity = state.AngularVelocity;
-            
-            // Immediately snap to the state since we're hardly moving
-            if (Rb.linearVelocity.magnitude <= SnapThreshold && Mathf.Abs(Rb.angularVelocity) <= SnapThreshold)
-            {
-                _history.Clear();
-                _history.Add(state.Timestamp, BuildState(state.Timestamp));
-            }
             Physics2D.SyncTransforms();
         }
 
@@ -320,17 +320,20 @@ namespace Soso.Net.Components.PredictedBodies
             _collisions.Remove(ownerId);
             if (NetId.AuthorityId == ownerId)
             {
-                if (_collisions.Count <= 0 || _collisions.Count > 1)
+                // Always apply outgoing authority's state
+                if (IsAuthority() == false)
                 {
                     long time = NetworkTime.ToLocalTime(ownerId, state.Timestamp);
                     state.Timestamp = time;
                     ReceiveState(state);
-                    
-                    NetId.SetOwner(0);
+                }
+                if (_collisions.Count == 1)
+                {
+                    NetId.SetOwner(_collisions.Keys.First());
                 }
                 else
                 {
-                    NetId.SetOwner(_collisions.Keys.First());
+                    NetId.SetOwner(0);
                 }
             }
         }

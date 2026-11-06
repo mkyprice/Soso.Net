@@ -197,12 +197,11 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  SnapThreshold: 2
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
   SendIntervalMs: 1000
-  MinSendIntervalMs: 200
+  MinSendIntervalMs: 33
   AllowAuthoritySwap: 1
   Reliable: 0
   Rb: {fileID: 154434554}
@@ -838,12 +837,11 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  SnapThreshold: 2
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
   SendIntervalMs: 1000
-  MinSendIntervalMs: 200
+  MinSendIntervalMs: 33
   AllowAuthoritySwap: 1
   Reliable: 0
   Rb: {fileID: 669435699}
@@ -1420,12 +1418,11 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  SnapThreshold: 2
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
   SendIntervalMs: 1000
-  MinSendIntervalMs: 200
+  MinSendIntervalMs: 33
   AllowAuthoritySwap: 1
   Reliable: 0
   Rb: {fileID: 925789059}
@@ -1675,12 +1672,11 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  SnapThreshold: 2
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
   SendIntervalMs: 1000
-  MinSendIntervalMs: 200
+  MinSendIntervalMs: 33
   AllowAuthoritySwap: 1
   Reliable: 0
   Rb: {fileID: 1144890420}
