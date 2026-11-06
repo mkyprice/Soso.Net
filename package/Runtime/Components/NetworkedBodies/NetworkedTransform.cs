@@ -5,6 +5,7 @@ using Soso.Net.Components.NetworkedBodies.Helpers;
 using Soso.Net.Components.NetworkedBodies.Packets;
 using Soso.Net.Components.NetworkedBodies.Snapshots;
 using Soso.Net.Logging;
+using Soso.Net.Models;
 using Soso.Net.Models.Packets;
 using UnityEngine;
 using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
@@ -16,6 +17,7 @@ namespace Soso.Net.Components.NetworkedBodies
         [SerializeField] public Transform Target;
 
         [SerializeField] public bool OnlySyncOnChange = true;
+        [SerializeField] public bool Reliable;
 
         [SerializeField, Range(0.0001f, 1f)] public float PositionSensitivity = 0.05f;
         [SerializeField, Range(0.0001f, 1f)] public float RotationSensitivity = 0.05f;
@@ -140,8 +142,18 @@ namespace Soso.Net.Components.NetworkedBodies
 
         #region Network Callbacks
     
-        [SosoRpc(RPC_CALL_TYPE.Client, false, false)]
-        private void RpcSnapshot(SyncTransform sync)
+        [SosoRpc(RPC_CALL_TYPE.Client, false, false, SOSO_SEND_TYPE.Reliable)]
+        private void RpcSnapshotReliable(SyncTransform sync)
+        {
+            OnSnapshotReceived(sync);
+        }
+        [SosoRpc(RPC_CALL_TYPE.Client, false, false, SOSO_SEND_TYPE.Unreliable)]
+        private void RpcSnapshotUnreliable(SyncTransform sync)
+        {
+            OnSnapshotReceived(sync);
+        }
+
+        private void OnSnapshotReceived(SyncTransform sync)
         {
             var position = (sync.Modified & SyncTransform.MODIFIED.Position) != 0 ? sync.Position : (Vector3?)null;
             var rotation = (sync.Modified & SyncTransform.MODIFIED.Rotation) != 0 ? sync.Rotation : (Quaternion?)null;
@@ -158,7 +170,7 @@ namespace Soso.Net.Components.NetworkedBodies
             AddSnapshot(ClientSnapshots, snapshotTime + SyncIntervalMs, position, rotation, scale);
         }
     
-        [SosoRpc(RPC_CALL_TYPE.Client, false, false)]
+        [SosoRpc(RPC_CALL_TYPE.Client, false, false, SOSO_SEND_TYPE.Reliable)]
         private void RpcTeleport(SyncTransform sync)
         {
             if ((sync.Modified & SyncTransform.MODIFIED.Position) != 0)
@@ -218,7 +230,14 @@ namespace Soso.Net.Components.NetworkedBodies
                 var sync = GetSync(snapshot, LastSentSnapshot);
                 LastSentSnapshot  = snapshot;
 
-                Rpc(RpcSnapshot, sync);
+                if (Reliable)
+                {
+                    Rpc(RpcSnapshotReliable, sync);
+                }
+                else
+                {
+                    Rpc(RpcSnapshotUnreliable, sync);
+                }
             }
         }
     

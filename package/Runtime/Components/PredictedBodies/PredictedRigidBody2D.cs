@@ -23,6 +23,7 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(20, 200)] public long RecordingIntervalMs = 50;
         [SerializeField, Range(20, 200)] public long SendIntervalMs = 50;
         [SerializeField] public bool AllowAuthoritySwap = false;
+        [SerializeField] public bool Reliable;
         
         public Rigidbody2D Rb;
 
@@ -170,11 +171,29 @@ namespace Soso.Net.Components.PredictedBodies
         {
             _lastState = state;
 
-            Rpc(RpcReceiveUpdate, state);
+            if (Reliable)
+            {
+                Rpc(RpcReceiveUpdateReliable, state);
+            }
+            else
+            {
+                Rpc(RpcReceiveUpdateUnreliable, state);
+            }
         }
 
         [SosoRpc(RPC_CALL_TYPE.Client, false, false, SOSO_SEND_TYPE.Unreliable)]
-        private void RpcReceiveUpdate(RigidBody2DState state)
+        private void RpcReceiveUpdateUnreliable(RigidBody2DState state)
+        {
+            OnRpcReceiveState(state);
+        }
+
+        [SosoRpc(RPC_CALL_TYPE.Client, false, false, SOSO_SEND_TYPE.Reliable)]
+        private void RpcReceiveUpdateReliable(RigidBody2DState state)
+        {
+            OnRpcReceiveState(state);
+        }
+
+        private void OnRpcReceiveState(RigidBody2DState state)
         {
             if (IsAuthority())
             {
