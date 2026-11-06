@@ -98,11 +98,23 @@ namespace Soso.Net.Behaviors
 			}
 			else
 			{
+				// Its okay to drop early
+				if (_isInitialized == false || Network.IsConnected == false)
+				{
+					return;
+				}
 				UnreliablePacket packet = new UnreliablePacket()
 				{
 					Message = data,
 				};
-				Network.Send(packet, 0, sendType);
+				if (Network.IsClient)
+				{
+					Network.Send(packet, 0, sendType);
+				}
+				else
+				{
+					Network.Broadcast(packet, 0, sendType);
+				}
 			}
 		}
 
@@ -129,7 +141,14 @@ namespace Soso.Net.Behaviors
 
 						NetworkLogger.Debug(CHANNEL.Default, "Sending {count} messages in packet", packet.Messages.Length);
 						// Send to server
-						Network.Send(packet, 0, SOSO_SEND_TYPE.Reliable);
+						if (Network.IsClient)
+						{
+							Network.Send(packet, 0, SOSO_SEND_TYPE.Reliable);
+						}
+						else
+						{
+							Network.Broadcast(packet, 0, SOSO_SEND_TYPE.Reliable);
+						}
 					}
 				}
 			}
