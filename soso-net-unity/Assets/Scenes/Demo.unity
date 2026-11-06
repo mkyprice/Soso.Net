@@ -200,6 +200,11 @@ MonoBehaviour:
   SnapThreshold: 2
   HistoryLimit: 32
   RecordingIntervalMs: 50
+  OnlySyncOnChange: 0
+  SendIntervalMs: 1000
+  MinSendIntervalMs: 200
+  AllowAuthoritySwap: 1
+  Reliable: 0
   Rb: {fileID: 154434554}
 --- !u!114 &154434556
 MonoBehaviour:
@@ -218,6 +223,7 @@ MonoBehaviour:
       Id: 0
     _remoteInfo:
       SessionId: 0
+      ConnectionId: 0
       RemoteTime: 0
       LastPingTime: 0
       PingMs: 0
@@ -835,6 +841,11 @@ MonoBehaviour:
   SnapThreshold: 2
   HistoryLimit: 32
   RecordingIntervalMs: 50
+  OnlySyncOnChange: 0
+  SendIntervalMs: 1000
+  MinSendIntervalMs: 200
+  AllowAuthoritySwap: 1
+  Reliable: 0
   Rb: {fileID: 669435699}
 --- !u!114 &669435701
 MonoBehaviour:
@@ -853,6 +864,7 @@ MonoBehaviour:
       Id: 0
     _remoteInfo:
       SessionId: 0
+      ConnectionId: 0
       RemoteTime: 0
       LastPingTime: 0
       PingMs: 0
@@ -1411,6 +1423,11 @@ MonoBehaviour:
   SnapThreshold: 2
   HistoryLimit: 32
   RecordingIntervalMs: 50
+  OnlySyncOnChange: 0
+  SendIntervalMs: 1000
+  MinSendIntervalMs: 200
+  AllowAuthoritySwap: 1
+  Reliable: 0
   Rb: {fileID: 925789059}
 --- !u!114 &925789061
 MonoBehaviour:
@@ -1429,6 +1446,7 @@ MonoBehaviour:
       Id: 0
     _remoteInfo:
       SessionId: 0
+      ConnectionId: 0
       RemoteTime: 0
       LastPingTime: 0
       PingMs: 0
@@ -1660,6 +1678,11 @@ MonoBehaviour:
   SnapThreshold: 2
   HistoryLimit: 32
   RecordingIntervalMs: 50
+  OnlySyncOnChange: 0
+  SendIntervalMs: 1000
+  MinSendIntervalMs: 200
+  AllowAuthoritySwap: 1
+  Reliable: 0
   Rb: {fileID: 1144890420}
 --- !u!114 &1144890422
 MonoBehaviour:
@@ -1678,6 +1701,7 @@ MonoBehaviour:
       Id: 0
     _remoteInfo:
       SessionId: 0
+      ConnectionId: 0
       RemoteTime: 0
       LastPingTime: 0
       PingMs: 0
@@ -3090,6 +3114,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: SosoNetworking::Soso.Net.Components.NetworkedBodies.NetworkedTransform
   Target: {fileID: 0}
   OnlySyncOnChange: 1
+  Reliable: 0
   PositionSensitivity: 0.05
   RotationSensitivity: 0.05
   ScaleSensitivity: 0.05
@@ -3119,6 +3144,7 @@ MonoBehaviour:
       Id: 0
     _remoteInfo:
       SessionId: 0
+      ConnectionId: 0
       RemoteTime: 0
       LastPingTime: 0
       PingMs: 0
@@ -3209,6 +3235,7 @@ MonoBehaviour:
       Id: 0
     _remoteInfo:
       SessionId: 0
+      ConnectionId: 0
       RemoteTime: 0
       LastPingTime: 0
       PingMs: 0
