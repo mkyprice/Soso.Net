@@ -43,7 +43,7 @@ namespace Soso.Net.Transports.TCP
             }
             catch (Exception e)
             {
-                NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Shutdown listener failed with error: {message}", e.Message);
+                NetworkLogger.Warn("Shutdown listener failed with error: {message}", e.Message);
             }
         }
 
@@ -56,7 +56,7 @@ namespace Soso.Net.Transports.TCP
         {
             Socket listener = (Socket)ar.AsyncState;
             Socket connectionSock = listener.EndAccept(ar);
-            NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Accepted new connection");
+            NetworkLogger.Info("Accepted new connection");
             SosoTcpConnection connection = new SosoTcpConnection(connectionSock);
             _connections.Add(connection);
             _onConnection(connection);

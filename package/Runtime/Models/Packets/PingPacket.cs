@@ -1,5 +1,4 @@
-﻿using Soso.Net.Serializers;
-using Soso.Serialization;
+﻿using Soso.Serialization;
 using Soso.Serialization.Binary;
 using Soso.Serialization.Serializers;
 

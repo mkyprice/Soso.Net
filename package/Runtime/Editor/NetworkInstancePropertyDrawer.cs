@@ -1,7 +1,6 @@
 ﻿using Soso.Net.Objects;
 using UnityEditor;
 using UnityEditor.UIElements;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Soso.Net.Editor

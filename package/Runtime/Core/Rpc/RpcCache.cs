@@ -19,7 +19,7 @@ namespace Soso.Net.Behaviors.Rpc
             int key = GetRpcKey(method);
             if (_rpcCalls.TryAdd(key, new RpcMethod(method, rpc)) == false)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to add RPC method {method}. Key has already been added",  method.Name);
+                NetworkLogger.Error("Failed to add RPC method {method}. Key has already been added",  method.Name);
             }
         }
         
@@ -67,7 +67,7 @@ namespace Soso.Net.Behaviors.Rpc
                     continue;
                 }
                 cache.Add(method, rpc);
-                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Caching method {m}", method.Name);
+                NetworkLogger.Debug("Caching method {m}", method.Name);
             }
 
             return cache;

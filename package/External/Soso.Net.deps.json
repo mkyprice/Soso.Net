@@ -11,7 +11,9 @@
         "dependencies": {
           "K4os.Compression.LZ4": "1.3.8",
           "K4os.Compression.LZ4.Streams": "1.3.8",
-          "Soso.Serialization": "1.0.0"
+          "soso.serialization": "1.0.0",
+          "soso.utils": "1.0.0",
+          "soso.utils.logging": "1.1.0"
         },
         "runtime": {
           "Soso.Net.dll": {}
@@ -49,6 +51,33 @@
           "lib/netstandard2.1/K4os.Hash.xxHash.dll": {
             "assemblyVersion": "1.0.8.0",
             "fileVersion": "1.0.8.0"
+          }
+        }
+      },
+      "soso.serialization/1.0.0": {
+        "dependencies": {
+          "soso.utils.logging": "1.1.0"
+        },
+        "runtime": {
+          "lib/netstandard2.1/Soso.Serialization.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "soso.utils/1.0.0": {
+        "runtime": {
+          "lib/netstandard2.0/Soso.Utils.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "soso.utils.logging/1.1.0": {
+        "runtime": {
+          "lib/netstandard2.0/Soso.Utils.Logging.dll": {
+            "assemblyVersion": "1.1.0.0",
+            "fileVersion": "1.1.0.0"
           }
         }
       },
@@ -90,14 +119,6 @@
             "fileVersion": "4.6.28619.1"
           }
         }
-      },
-      "Soso.Serialization/1.0.0": {
-        "runtime": {
-          "Soso.Serialization.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
       }
     }
   },
@@ -128,6 +149,27 @@
       "path": "k4os.hash.xxhash/1.0.8",
       "hashPath": "k4os.hash.xxhash.1.0.8.nupkg.sha512"
     },
+    "soso.serialization/1.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-P5i3NbMS4gn0os4JVJ/QGWJGHeuoDG6jdD65Ty+8DSn1WRMVlkhJTdQu2AFxtVsR4FnxQ8bCnXWyRtlEuS2GWw==",
+      "path": "soso.serialization/1.0.0",
+      "hashPath": "soso.serialization.1.0.0.nupkg.sha512"
+    },
+    "soso.utils/1.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-apJp8KObNi7LMo0GocuPZ6nD7uZSF9qJUx7aaMRiJlquGSAq5fzWIR4Wwmm9L4gKsirGUV4nS5r1pvgN5pZ1UQ==",
+      "path": "soso.utils/1.0.0",
+      "hashPath": "soso.utils.1.0.0.nupkg.sha512"
+    },
+    "soso.utils.logging/1.1.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-bmmENThqqjr7ZBqemyISgy935Xb8Sc4XFgWqC2vy04/YGbioIrVoqdlFyQbg7DGrB3pIqpVG9iPIB3XdARbAyg==",
+      "path": "soso.utils.logging/1.1.0",
+      "hashPath": "soso.utils.logging.1.1.0.nupkg.sha512"
+    },
     "System.Buffers/4.5.1": {
       "type": "package",
       "serviceable": true,
@@ -155,11 +197,6 @@
       "sha512": "sha512-zteT+G8xuGu6mS+mzDzYXbzS7rd3K6Fjb9RiZlYlJPam2/hU7JCBZBVEcywNuR+oZ1ncTvc/cq0faRr3P01OVg==",
       "path": "system.threading.tasks.extensions/4.5.4",
       "hashPath": "system.threading.tasks.extensions.4.5.4.nupkg.sha512"
-    },
-    "Soso.Serialization/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
     }
   }
 }

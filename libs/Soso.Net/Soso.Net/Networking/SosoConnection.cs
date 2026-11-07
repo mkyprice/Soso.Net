@@ -51,7 +51,7 @@ namespace Soso.Net
 		{
 			if (Status != CONNECTION_STATUS.Connected)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Send failed - you are not connected. Status is {Status}", Status);
+				NetworkLogger.Warn("Send failed - you are not connected. Status is {Status}", Status);
 				return;
 			}
 			Connection.Send(data, channel, 0);
@@ -85,7 +85,7 @@ namespace Soso.Net
 				}
 				else
 				{
-					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Received packet during connecting phase");
+					NetworkLogger.Warn("Received packet during connecting phase");
 				}
 			}
 			else

@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Soso.Net.Behaviors.Rpc;
 using Soso.Net.Components.Spawning;
 using Soso.Net.Extensions;
 using Soso.Net.Logging;
@@ -86,7 +85,7 @@ namespace Soso.Net.Behaviors
 				{
 					while (queue.TryDequeue(out var cmd))
 					{
-						NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Spawning: {Id}:{type} from queue...", cmd.Id, ToString(cmd.SpawnType));
+						NetworkLogger.Info("Spawning: {Id}:{type} from queue...", cmd.Id, ToString(cmd.SpawnType));
 						int spawnable = cmd.SpawnType;
 						var instance = InstantiateIdentity(scene, spawnable, cmd.Position, cmd.Rotation);
 						InitializeIdentity(spawnable, instance, cmd.Id);
@@ -116,7 +115,7 @@ namespace Soso.Net.Behaviors
 			if (INetworkManager.GetInstanceManager().InstanceExists(NetworkInstanceId.Spawner) == false
 			    && INetworkManager.GetInstanceManager().SetInstanceIdentity(null, this, NetworkInstanceId.Spawner) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not register {name}", name);
+				NetworkLogger.Error("Could not register {name}", name);
 			}
 			
 			// Find all NetworkId instances in the scene
@@ -188,7 +187,7 @@ namespace Soso.Net.Behaviors
 			}
 			else
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not find NetworkIdentity on {go}", go.name);
+				NetworkLogger.Error("Could not find NetworkIdentity on {go}", go.name);
 			}
 		}
 
@@ -203,7 +202,7 @@ namespace Soso.Net.Behaviors
 			
 			if (instance.InstanceId == 0)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Identity {name} has a default ID. Not despawning", instance);
+				NetworkLogger.Warn("Identity {name} has a default ID. Not despawning", instance);
 				return;
 			}
 			
@@ -217,7 +216,7 @@ namespace Soso.Net.Behaviors
 			};
 			Send(cmd, 0, SOSO_SEND_TYPE.Reliable);
 			
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning {name} with Id: {Id}", instance, id);
+			NetworkLogger.Info("Despawning {name} with Id: {Id}", instance, id);
 		}
 		
 		/// <summary>
@@ -232,7 +231,7 @@ namespace Soso.Net.Behaviors
 			}
 			else
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not find NetworkIdentity on {go}", go.name);
+				NetworkLogger.Error("Could not find NetworkIdentity on {go}", go.name);
 			}
 		}
 
@@ -244,7 +243,7 @@ namespace Soso.Net.Behaviors
 		{
 			if (id == null)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Despawn - networkId is null");
+				NetworkLogger.Error("Despawn - networkId is null");
 				return;
 			}
 			DestroyInstance(id.InstanceId);
@@ -258,31 +257,31 @@ namespace Soso.Net.Behaviors
 		{
 			if (INetworkManager.GetInstanceManager().DeleteData(instanceId, out var instance) == false || instance.Identity is BaseNetworkIdentity instanceObj == false)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Failed to delete instance {id}. Instance not found", instanceId);
+				NetworkLogger.Warn("Failed to delete instance {id}. Instance not found", instanceId);
 				return;
 			}
 			
 			if (instanceObj == false || instanceObj.gameObject == false)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Failed to despawn {id}. Object is not loaded", instanceId);
+				NetworkLogger.Warn("Failed to despawn {id}. Object is not loaded", instanceId);
 				return;
 			}
 
 			var scene = instanceObj.gameObject.scene;
 			if (scene.isLoaded == false)
 			{
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Failed to despawn {name}({id}). Scene is not loaded", instanceObj.GetName(), instanceId);
+				NetworkLogger.Info("Failed to despawn {name}({id}). Scene is not loaded", instanceObj.GetName(), instanceId);
 				return;
 			}
 			
 			var identity = (NetworkIdentity)instanceObj;
 			if (identity == false)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Could not find Identity: {id}", instanceId);
+				NetworkLogger.Warn("Could not find Identity: {id}", instanceId);
 				return;
 			}
 			
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Despawning: Id:{id} Name: {name}", instanceId, identity.name);
+			NetworkLogger.Info("Despawning: Id:{id} Name: {name}", instanceId, identity.name);
 			
 			// Return to pool
 			var instanceType = instance.Type;
@@ -326,7 +325,7 @@ namespace Soso.Net.Behaviors
 		{
 			if (IsSceneInitialized(scene) == false)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Scene {name} is not initialized", scene.name);
+				NetworkLogger.Warn("Scene {name} is not initialized", scene.name);
 				InitializeScene(scene);
 			}
 			var instance = InstantiateIdentity(scene, typeValue, position, rotation);
@@ -380,7 +379,7 @@ namespace Soso.Net.Behaviors
 		{
 			if (IsSceneInitialized(scene) == false)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Scene {name} is not initialized", scene.name);
+				NetworkLogger.Warn("Scene {name} is not initialized", scene.name);
 				InitializeScene(scene);
 			}
 			var instance = InstantiateIdentity(scene, typeValue, position, rotation);
@@ -405,14 +404,14 @@ namespace Soso.Net.Behaviors
 		{
 			if (INetworkManager.GetInstanceManager().SetInstanceIdentity(spawnType, identity, instanceId) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Failed to create identity {identity} - Could not register");
+				NetworkLogger.Error($"Failed to create identity {identity} - Could not register");
 				Destroy(identity.gameObject);
 				return false;
 			}
 			
 			OnSpawnInternal(spawnType, identity);
 			
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Spawned {inst} with id {id}", ToString(spawnType), instanceId);
+			NetworkLogger.Info("Spawned {inst} with id {id}", ToString(spawnType), instanceId);
 			return true;
 		}
 
@@ -481,7 +480,7 @@ namespace Soso.Net.Behaviors
 			// Ours
 			if (source == SessionId || (source == 0 && INetworkManager.GetInstance().IsServer)) return;
 			
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received spawn command. Id: {Id}:{type}", cmd.Id, ToString(cmd.SpawnType));
+			NetworkLogger.Info("Client received spawn command. Id: {Id}:{type}", cmd.Id, ToString(cmd.SpawnType));
 			var scene = SceneManager.GetSceneByBuildIndex(cmd.Id.SceneId);
 			if (_spawnQueue.TryGetValue(scene, out var queue) == false)
 			{
@@ -493,7 +492,7 @@ namespace Soso.Net.Behaviors
 
 		private void HandleDespawnMessage(DespawnCommand cmd)
 		{
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Client received despawn command. Id: {Id}", cmd.Id);
+			NetworkLogger.Info("Client received despawn command. Id: {Id}", cmd.Id);
 			
 			// We sent it and have already deleted it
 			var source = cmd.SourceId;

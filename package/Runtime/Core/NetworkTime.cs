@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using Soso.Net.Behaviors;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
 using Soso.Serialization;
-using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net
 {
@@ -52,7 +49,7 @@ namespace Soso.Net
             PingPacket ping = new PingPacket();
             ping.SourceId = sessionId;
             ping.RealtimeSendMs = _lastPingTime;
-            NetworkLogger.Debug(CHANNEL.Default, "Sending ping with id {id} and time {time}", ping.SourceId, _lastPingTime);
+            NetworkLogger.Debug("Sending ping with id {id} and time {time}", ping.SourceId, _lastPingTime);
             network.Send(ping, 0, SOSO_SEND_TYPE.Reliable);
         }
         
@@ -167,7 +164,7 @@ namespace Soso.Net
             }
             else
             {
-                NetworkLogger.Warn(CHANNEL.Default, "No remote info found for network id {id}", sessionId);
+                NetworkLogger.Warn("No remote info found for network id {id}", sessionId);
             }
             return remoteInfo;
         }

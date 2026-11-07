@@ -17,12 +17,12 @@ public class SocketState
     internal void SetState(CONNECTION_STATUS status)
     {
         Status = status;
-        NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Socket({SocketId})-Id({Id}) - Set status: {Status}", SocketId, Id, Status);
+        NetworkLogger.Debug("Socket({SocketId})-Id({Id}) - Set status: {Status}", SocketId, Id, Status);
     }
 
     internal void SetId(ulong id)
     {
         Id = id;
-        NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Socket({SocketId})- Set Id: {Id}", SocketId, Id);
+        NetworkLogger.Debug("Socket({SocketId})- Set Id: {Id}", SocketId, Id);
     }
 }

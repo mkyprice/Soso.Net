@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using Soso.Net.Extensions;
 using Soso.Net.Utils;
-using UnityEngine;
 
 namespace Soso.Net.Components.NetworkedBodies.Snapshots
 {

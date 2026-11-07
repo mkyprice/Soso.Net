@@ -2,7 +2,6 @@ using System;
 using Soso.Net.Serializers;
 using Soso.Serialization;
 using Soso.Serialization.Binary;
-using Soso.Serialization.Serializers;
 
 namespace Soso.Net.Models.Packets
 {

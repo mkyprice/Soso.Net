@@ -36,13 +36,13 @@ namespace Soso.Net.Benchmarks
 			{
 				ConnectionCount--;
 			}
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Connection changed {connection.GetConnectionId()} - {status}", connection.GetConnectionId(), status);
+			NetworkLogger.Info("Connection changed {connection.GetConnectionId()} - {status}", connection.GetConnectionId(), status);
 		}
 
 		public override void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
 		{
 			string message =  Encoding.ASCII.GetString(data);
-			if (LogMessage) NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Conn:{connection.GetConnectionId()} Channel:{channel} Time:{timestamp} Num:{messageNumber} - {message}", connection.GetConnectionId(), channel, timestamp, messageNumber, message);
+			if (LogMessage) NetworkLogger.Info("Conn:{connection.GetConnectionId()} Channel:{channel} Time:{timestamp} Num:{messageNumber} - {message}", connection.GetConnectionId(), channel, timestamp, messageNumber, message);
 			ReceiveCount++;
 		}
 	}

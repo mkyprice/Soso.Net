@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Soso.Net.Logging;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Messaging
 {
@@ -11,7 +10,7 @@ namespace Soso.Net.Messaging
 
 		public void Process(IUserConnection source, object message, long messageNum, long recvTime, int channel)
 		{
-			NetworkLogger.Debug(CHANNEL.Default, "Processing message {message} on channel: {channel}", message, channel);
+			NetworkLogger.Debug("Processing message {message} on channel: {channel}", message, channel);
 			Type type = message.GetType();
 			if (_processors.TryGetValue(type, out IMessageProcessor processor))
 			{
@@ -19,7 +18,7 @@ namespace Soso.Net.Messaging
 			}
 			else
 			{
-				NetworkLogger.Error(CHANNEL.Default, "No callback for packet type {name} with data {message}", type.Name, message);
+				NetworkLogger.Error("No callback for packet type {name} with data {message}", type.Name, message);
 			}
 		}
 		

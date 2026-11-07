@@ -3,9 +3,7 @@ using Soso.Net.Components;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
-using Soso.Utils.Concurrency;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using Soso.Net.Core.Instances;
 using Soso.Net.Objects;
@@ -49,7 +47,7 @@ namespace Soso.Net.Behaviors
 		{
 			if (_isInitialized)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} was already initialized. Resetting...", name);
+				NetworkLogger.Warn("{name} was already initialized. Resetting...", name);
 				ResetInstance();
 			}
 			_instance = instance;
@@ -57,7 +55,7 @@ namespace Soso.Net.Behaviors
 			_rpc = new RpcManager(Send);
 			_rpc.AddTarget(this);
 			// StartMessageThread();
-			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Initializing NetworkIdentity {name} with id {id}", name, InstanceId);
+			NetworkLogger.Debug("Initializing NetworkIdentity {name} with id {id}", name, InstanceId);
 			_isInitialized = true;
 		}
 
@@ -84,7 +82,7 @@ namespace Soso.Net.Behaviors
 					RPC.Process(sync);
 					break;
 				default:
-					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Message {msg} was not recognized", incoming);
+					NetworkLogger.Warn("Message {msg} was not recognized", incoming);
 					break;
 			}
 		}
@@ -98,7 +96,7 @@ namespace Soso.Net.Behaviors
 			}
 			if (IsInitialized == false)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} was not initialized", name);
+				NetworkLogger.Warn("{name} was not initialized", name);
 				return;
 			}
 			Network.Broadcast(InstanceId, message, channel, sendType);
@@ -152,12 +150,12 @@ namespace Soso.Net.Behaviors
 
 		public virtual void Despawn()
 		{
-			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{name} is not available for {this}", nameof(Despawn), this);
+			NetworkLogger.Error("{name} is not available for {this}", nameof(Despawn), this);
 		}
 
 		public virtual void DespawnLocal()
 		{
-			NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{name} is not available for {this}", nameof(DespawnLocal), this);
+			NetworkLogger.Error("{name} is not available for {this}", nameof(DespawnLocal), this);
 		}
 
 		#endregion

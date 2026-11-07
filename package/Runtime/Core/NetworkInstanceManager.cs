@@ -56,7 +56,7 @@ namespace Soso.Net.Core
 				{
 					if (instance.Id != id)
 					{
-						NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "NetworkInstance {id} exists but its ID is set to {bad}", id, instance.Id);
+						NetworkLogger.Error("NetworkInstance {id} exists but its ID is set to {bad}", id, instance.Id);
 					}
 					return instance;
 				}
@@ -70,7 +70,7 @@ namespace Soso.Net.Core
 				}
 				ids.Add(instanceId);
 				
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Created instance [{instanceId}]", instanceId);
+				NetworkLogger.Info("Created instance [{instanceId}]", instanceId);
 				
 				return instance;
 			}
@@ -82,19 +82,19 @@ namespace Soso.Net.Core
 			
 			if (instanceData.Identity == identity)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Instance identity {id} is already set to identity {inst}", id, identity.GetName());
+				NetworkLogger.Warn("Instance identity {id} is already set to identity {inst}", id, identity.GetName());
 				return true;
 			}
 
 			if (instanceData.Identity != null)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Identity already exists for {name}({id}). Instance: {other}", identity.GetName(), id, instanceData.Identity.GetName());
+				NetworkLogger.Error("Identity already exists for {name}({id}). Instance: {other}", identity.GetName(), id, instanceData.Identity.GetName());
 				return false;
 			}
 
 			instanceData.SetInstance(identity, type);
 
-			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Set instance {name}[{instanceId}]", identity.GetName(), id);
+			NetworkLogger.Debug("Set instance {name}[{instanceId}]", identity.GetName(), id);
 
 			return true;
 		}
@@ -161,11 +161,11 @@ namespace Soso.Net.Core
 				bool removedOwner = _owners.TryGetValue(owner, out var ownerIds) && ownerIds.Remove(id);
 				if (removeInst && removedOwner)
 				{
-					NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Successfully deleted instance {id} | {type}", id, ToString(data.Type));
+					NetworkLogger.Info("Successfully deleted instance {id} | {type}", id, ToString(data.Type));
 					return true;
 				}
 
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to delete instance {id}. Inst found: {id} Owner delete: {od}", id, removeInst, removedOwner);
+				NetworkLogger.Error("Failed to delete instance {id}. Inst found: {id} Owner delete: {od}", id, removeInst, removedOwner);
 				return false;
 			}
 		}

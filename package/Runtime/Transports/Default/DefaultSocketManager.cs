@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using Soso.Net.Logging;
 using Soso.Net.Models;
-using Soso.Serialization;
-using Soso.Serialization.Binary;
 
 namespace Soso.Net.Transports.Default
 {
@@ -47,11 +45,11 @@ namespace Soso.Net.Transports.Default
         
         private void OnDisconnected(SosoSocket obj)
         {
-            NetworkLogger.Info(NetworkLogger.CHANNEL.Default,  $"Disconnected from {obj}");
+            NetworkLogger.Info( $"Disconnected from {obj}");
             if (_connections.Remove(obj.GetConnectionId(), out var connection))
             {
                 OnUserDisconnected?.Invoke(connection);
-                NetworkLogger.Info(NetworkLogger.CHANNEL.Default, $"Removed connection {obj}");
+                NetworkLogger.Info($"Removed connection {obj}");
             }
         }
 
@@ -61,12 +59,12 @@ namespace Soso.Net.Transports.Default
             _connections[obj.GetConnectionId()] = connection;
             // connection.Disconnected(OnDisconnected);
             OnUserConnected?.Invoke(connection);
-            NetworkLogger.Info(NetworkLogger.CHANNEL.Default, $"Added connection {obj}");
+            NetworkLogger.Info($"Added connection {obj}");
         }
 
         public override void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
         {
-            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, $"{nameof(DefaultSocketManager)}{connection.GetConnectionId()} - Received message of size {data.Length}, num: {messageNumber}, time: {timestamp}, channel: {channel}");
+            NetworkLogger.Debug($"{nameof(DefaultSocketManager)}{connection.GetConnectionId()} - Received message of size {data.Length}, num: {messageNumber}, time: {timestamp}, channel: {channel}");
             _connections[connection.GetConnectionId()].HandleMessage(data, timestamp, messageNumber, channel);
         }
 

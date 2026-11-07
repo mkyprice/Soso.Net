@@ -2,9 +2,7 @@ using System.Collections.Generic;
 using Soso.Net.Core.Instances;
 using Soso.Net.Core.Sync;
 using Soso.Net.Logging;
-using Soso.Net.Models;
 using Soso.Net.Models.Packets;
-using UnityEngine;
 
 namespace Soso.Net.Behaviors.Rpc
 {
@@ -24,7 +22,7 @@ namespace Soso.Net.Behaviors.Rpc
                 _syncs[sync.SyncId] = sync;
                 sync.Initialize(manager);
             }
-            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Created {name} for {target}({id}). Syncs: {syncCount}", 
+            NetworkLogger.Debug("Created {name} for {target}({id}). Syncs: {syncCount}", 
                 nameof(SyncContainer), target.GetType().Name, target.GetLocalId(), _syncs.Count);
         }
         
@@ -36,7 +34,7 @@ namespace Soso.Net.Behaviors.Rpc
             }
             else
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Sync ID {id} not found on target {target}", sync.SyncId, _target);
+                NetworkLogger.Error("Sync ID {id} not found on target {target}", sync.SyncId, _target);
             }
         }
     }

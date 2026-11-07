@@ -5,7 +5,6 @@ using Soso.Net.Components.NetworkedBodies.Snapshots;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Components.NetworkedBodies
 {
@@ -28,7 +27,7 @@ namespace Soso.Net.Components.NetworkedBodies
             
             if (Target.gameObject.TryGetComponent(out Rb) == false)
             {
-                NetworkLogger.Error(CHANNEL.Default, "No RigidBody attached to {name}", Target.gameObject.name);
+                NetworkLogger.Error("No RigidBody attached to {name}", Target.gameObject.name);
             }
         }
 

@@ -66,7 +66,7 @@ public class SosoListener : ISocketProcessor
             }
             else
             {
-                NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Received packet during socket handshake");
+                NetworkLogger.Warn("Received packet during socket handshake");
             }
 				
         }

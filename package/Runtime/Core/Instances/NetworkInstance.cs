@@ -1,5 +1,4 @@
 using System;
-using Soso.Net.Behaviors;
 using Soso.Net.Core.Instances;
 using Soso.Net.Logging;
 using Soso.Net.Models;
@@ -50,12 +49,12 @@ namespace Soso.Net.Objects
 		{
 			if (incoming.SyncTime)
 			{
-				NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} enqueuing message: {message} at time {t} (Local time: {lt})", Id, incoming, incoming.Time, NetworkTime.Time);
+				NetworkLogger.Debug("{name} enqueuing message: {message} at time {t} (Local time: {lt})", Id, incoming, incoming.Time, NetworkTime.Time);
 				_timedReceiveQueue.Add(incoming.Time, incoming);
 			}
 			else
 			{
-				NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} Enqueuing ready message {message}", Id, incoming);
+				NetworkLogger.Debug("{name} Enqueuing ready message {message}", Id, incoming);
 				_readyQueue.EnqueueBack(incoming);
 			}
 		}
@@ -73,7 +72,7 @@ namespace Soso.Net.Objects
 				if (messageWait > 0)
 				{
 					_timedReceiveQueue.Add(message.Time, message);
-					NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{id} waiting for {wait}s", Id, messageWait);
+					NetworkLogger.Debug("{id} waiting for {wait}s", Id, messageWait);
 					break;
 				}
 
@@ -83,10 +82,10 @@ namespace Soso.Net.Objects
 			int processed = 0;
 			while (processed < MAX_MESSAGES_PER_UPDATE && _readyQueue.TryPeek(out var message))
 			{
-				NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} Processing message {message}", Id, message);
+				NetworkLogger.Debug("{name} Processing message {message}", Id, message);
 				if (Identity.IsInitialized == false)
 				{
-					NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} is not ready for message {message}", Id, message);
+					NetworkLogger.Debug("{name} is not ready for message {message}", Id, message);
 					break;
 				}
 				if (_readyQueue.TryDequeue(out message))

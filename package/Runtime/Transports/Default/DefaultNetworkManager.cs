@@ -82,7 +82,7 @@ namespace Soso.Net.Transports.Default
             }
             catch (Exception e)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Process failed for network with error: {msg}\n{st}", e.Message, e.StackTrace);
+                NetworkLogger.Error("Process failed for network with error: {msg}\n{st}", e.Message, e.StackTrace);
             }
         }
 
@@ -105,7 +105,7 @@ namespace Soso.Net.Transports.Default
         {
             if (_connectionManager == null)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Tried to send message but connection manager was null");
+                NetworkLogger.Error($"Tried to send message but connection manager was null");
                 return;
             }
             _connectionManager.MyConnection.Send(data, offset, length, sendType, channel);
@@ -115,7 +115,7 @@ namespace Soso.Net.Transports.Default
         {
             if (_socketManager == null)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Tried to send message but socket manager was null");
+                NetworkLogger.Error($"Tried to send message but socket manager was null");
                 return;
             }
             _socketManager.SendTo(data, offset, length, sendType, channel, connectionId);
@@ -144,7 +144,7 @@ namespace Soso.Net.Transports.Default
             }
             catch (Exception e)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to connect to {ip}:{port} with error: {e.Message}", ip, port, e.Message);
+                NetworkLogger.Error("Failed to connect to {ip}:{port} with error: {e.Message}", ip, port, e.Message);
                 connectionManager = null;
             }
             return connectionManager;

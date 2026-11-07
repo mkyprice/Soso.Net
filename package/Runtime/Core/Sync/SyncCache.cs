@@ -62,7 +62,7 @@ namespace Soso.Net.Behaviors.Rpc
             foreach (var syncProp in GetAllMatchingFields(type, typeof(SosoSync<>), flags))
             {
                 cache.AddSosoSync(syncProp);
-                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Caching SosoSync {m}", syncProp.Name);
+                NetworkLogger.Debug("Caching SosoSync {m}", syncProp.Name);
             }
             
             return cache;

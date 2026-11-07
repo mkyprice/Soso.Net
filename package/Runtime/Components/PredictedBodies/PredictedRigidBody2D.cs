@@ -412,7 +412,7 @@ namespace Soso.Net.Components.PredictedBodies
                 var lastUpdateDiff = time - heartbeatTime;
                 if (lastUpdateDiff >= AuthorityHeartbeatTimeoutMs)
                 {
-                    NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Dropping inactive collision {id} from {me}. Last update: {t}", owner, name, lastUpdateDiff);
+                    NetworkLogger.Debug("Dropping inactive collision {id} from {me}. Last update: {t}", owner, name, lastUpdateDiff);
                     _authRemoveCache.Add(owner);
                 }
             }

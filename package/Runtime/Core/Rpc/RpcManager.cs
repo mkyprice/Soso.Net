@@ -4,7 +4,6 @@ using Soso.Net.Core.Instances;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Behaviors.Rpc
 {
@@ -45,7 +44,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_rpcs.TryGetValue(rpc.TargetId, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "RPC: Target({rpc}) not found. RPC method: {method}", rpc.TargetId, rpc.Method);
+				NetworkLogger.Error("RPC: Target({rpc}) not found. RPC method: {method}", rpc.TargetId, rpc.Method);
 				return;
 			}
 			targetHandler.Process(rpc);
@@ -55,7 +54,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_syncs.TryGetValue(sync.TargetId, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "SYNC: Target({rpc}) not found. Sync ID: {sync}", sync.TargetId, sync.SyncId);
+				NetworkLogger.Error("SYNC: Target({rpc}) not found. Sync ID: {sync}", sync.TargetId, sync.SyncId);
 				return;
 			}
 			targetHandler.Process(sync);
@@ -72,7 +71,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_rpcs.TryGetValue(id, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "RPC: {rpc} ({id}) target not found", id, function.Method.Name);
+				NetworkLogger.Error("RPC: {rpc} ({id}) target not found", id, function.Method.Name);
 				return;
 			}
 			targetHandler.Rpc(function);
@@ -81,7 +80,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_rpcs.TryGetValue(id, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "RPC: {rpc} ({id}) target not found", id, function.Method.Name);
+				NetworkLogger.Error("RPC: {rpc} ({id}) target not found", id, function.Method.Name);
 				return;
 			}
 			targetHandler.Rpc(function, arg0);
@@ -90,7 +89,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_rpcs.TryGetValue(id, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "RPC: {rpc} ({id}) target not found", id, function.Method.Name);
+				NetworkLogger.Error("RPC: {rpc} ({id}) target not found", id, function.Method.Name);
 				return;
 			}
 			targetHandler.Rpc(function, arg0, arg1);
@@ -99,7 +98,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_rpcs.TryGetValue(id, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "RPC: {rpc} ({id}) target not found", id, function.Method.Name);
+				NetworkLogger.Error("RPC: {rpc} ({id}) target not found", id, function.Method.Name);
 				return;
 			}
 			targetHandler.Rpc(function, arg0, arg1, arg2);
@@ -108,7 +107,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_rpcs.TryGetValue(id, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "RPC: {rpc} ({id}) target not found", id, function.Method.Name);
+				NetworkLogger.Error("RPC: {rpc} ({id}) target not found", id, function.Method.Name);
 				return;
 			}
 			targetHandler.Rpc(function, arg0, arg1, arg2, arg3);
@@ -117,7 +116,7 @@ namespace Soso.Net.Behaviors.Rpc
 		{
 			if (_rpcs.TryGetValue(id, out var targetHandler) == false)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "RPC: {rpc} ({id}) target not found", id, function.Method.Name);
+				NetworkLogger.Error("RPC: {rpc} ({id}) target not found", id, function.Method.Name);
 				return;
 			}
 			targetHandler.Rpc(function, arg0, arg1, arg2, arg3, arg4);

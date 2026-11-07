@@ -18,8 +18,7 @@ public class DemoController : MonoBehaviour
         Application.runInBackground = true;
         NetworkManager.PlayerId = (ulong)Guid.NewGuid().ToString().GetHashCode();
         
-        NetworkLogger.Logger = new SosoLogger<NetworkLogger.CHANNEL>(new UnityLogFormatter());
-        NetworkLogger.Logger.ActiveChannels = NetworkLogger.CHANNEL.Default;
+        NetworkLogger.Logger = new SosoLogger(new UnityLogFormatter());
         NetworkLogger.Logger.Level = LOG_LEVEL.Info;
         
         await NetworkManager.Initialize();

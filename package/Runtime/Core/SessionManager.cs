@@ -6,7 +6,6 @@ using Soso.Net.Models.Packets;
 using Soso.Net.Utils;
 using Soso.Utils;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net
 {
@@ -48,12 +47,12 @@ namespace Soso.Net
             {
                 if (--waitAttempts <= 0)
                 {
-                    NetworkLogger.Error(CHANNEL.Default, "Failed to negotiate session");
+                    NetworkLogger.Error("Failed to negotiate session");
                     return false;
                 }
                 await Awaitable.WaitForSecondsAsync(0.5f);
                 
-                NetworkLogger.Info(CHANNEL.Default, "Waiting for session...");
+                NetworkLogger.Info("Waiting for session...");
             }
 
             return true;

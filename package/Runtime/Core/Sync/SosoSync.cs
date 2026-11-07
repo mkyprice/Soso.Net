@@ -67,13 +67,13 @@ namespace Soso.Net.Core.Sync
         {
             if (_isDirty && Equals(_dirtyValue, value))
             {
-                NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} is already sending value {v}", _name, value);
+                NetworkLogger.Warn("{name} is already sending value {v}", _name, value);
                 return;
             }
             
             if (_requireAuthority && (_target == null || _target.IsAuthority() == false))
             {
-                NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "{name} is not authority", _name);
+                NetworkLogger.Warn("{name} is not authority", _name);
                 _isDirty = false;
                 _dirtyValue = _value;
                 return;
@@ -95,7 +95,7 @@ namespace Soso.Net.Core.Sync
         {
             if (time <= _lastSync)
             {
-                NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Counter was behind on {name}. Current: {c} given: {cn}", _name, _lastSync, time);
+                NetworkLogger.Warn("Counter was behind on {name}. Current: {c} given: {cn}", _name, _lastSync, time);
                 return false;
             }
 
@@ -105,7 +105,7 @@ namespace Soso.Net.Core.Sync
             _dirtyValue = value;
             _isDirty = false;
             _lastSync = time;
-            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name}:{id} - Set from {old} to {new}", nameof(SosoSync<T>), Name, oldValue, newValue);
+            NetworkLogger.Debug("{name}:{id} - Set from {old} to {new}", nameof(SosoSync<T>), Name, oldValue, newValue);
             OnChanged?.Invoke(oldValue, newValue);
             return true;
         }
@@ -124,11 +124,11 @@ namespace Soso.Net.Core.Sync
             {
                 if (_requireAuthority && _target.AuthorityId == source.SessionId)
                 {
-                    NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Source validation failed for {name}:{source}", _name, source);
+                    NetworkLogger.Warn("Source validation failed for {name}:{source}", _name, source);
                     return;
                 }
                 
-                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Server sync {name} received value {v} from {source}", _name, value, source.SessionId);
+                NetworkLogger.Debug("Server sync {name} received value {v} from {source}", _name, value, source.SessionId);
                 if (SetInternal(value, localTime))
                 {
                     SyncCall call = new SyncCall()
@@ -145,7 +145,7 @@ namespace Soso.Net.Core.Sync
             }
             else
             {
-                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Client sync {name} received value {v}", _name, value);
+                NetworkLogger.Debug("Client sync {name} received value {v}", _name, value);
                 SetInternal(value, localTime);
             }
         }

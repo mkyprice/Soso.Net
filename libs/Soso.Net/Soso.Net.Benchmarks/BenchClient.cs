@@ -22,7 +22,7 @@ namespace Soso.Net.Benchmarks
 		public override void OnMessage(ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
 		{
 			string message =  Encoding.ASCII.GetString(data);
-			if (LogMessage) NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Conn:{Connection.Id} Channel:{channel} Time:{timestamp} Num:{messageNumber} - {message}", Connection.Id, channel, timestamp, messageNumber, message);
+			if (LogMessage) NetworkLogger.Info("Conn:{Connection.Id} Channel:{channel} Time:{timestamp} Num:{messageNumber} - {message}", Connection.Id, channel, timestamp, messageNumber, message);
 			ReceiveCount++;
 		}
 		public override void OnStateChanged(CONNECTION_STATUS status)

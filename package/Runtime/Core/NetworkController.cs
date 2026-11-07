@@ -1,15 +1,10 @@
-using Soso.Net.Components;
 using System.Collections.Generic;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
-using Soso.Net.Objects;
-using Soso.Utils.Concurrency;
 using System;
-using System.Collections.Concurrent;
 using Soso.Net.Core;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Behaviors
 {
@@ -46,7 +41,7 @@ namespace Soso.Net.Behaviors
 			if (Network.IsOffline)
 			{
 				_isInitialized = true;
-				NetworkLogger.Warn(CHANNEL.Default, "You are offline. No messages will be processed");
+				NetworkLogger.Warn("You are offline. No messages will be processed");
 				return;
 			}
 			
@@ -139,7 +134,7 @@ namespace Soso.Net.Behaviors
 						packet.Messages = _reliableSendQueue.ToArray();
 						_reliableSendQueue.Clear();
 
-						NetworkLogger.Debug(CHANNEL.Default, "Sending {count} messages in packet", packet.Messages.Length);
+						NetworkLogger.Debug("Sending {count} messages in packet", packet.Messages.Length);
 						// Send to server
 						if (Network.IsClient)
 						{
@@ -192,7 +187,7 @@ namespace Soso.Net.Behaviors
 			}
 			message.Time = adjustedLocalTime;
 
-			NetworkLogger.Debug(CHANNEL.Default, "Processing message {msg} from {re}", message, remoteInfo);
+			NetworkLogger.Debug("Processing message {msg} from {re}", message, remoteInfo);
 			
 			// Enqueue our message
 			NetworkInstanceId target = message.SourceInstance;
@@ -208,7 +203,7 @@ namespace Soso.Net.Behaviors
 
 			if (message == null)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "Unreliable packet - message was null");
+				NetworkLogger.Error("Unreliable packet - message was null");
 				return;
 			}
 			
@@ -229,7 +224,7 @@ namespace Soso.Net.Behaviors
 			
 			if (message == null)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "Unreliable packet - message was null");
+				NetworkLogger.Error("Unreliable packet - message was null");
 				return;
 			}
 			
@@ -246,7 +241,7 @@ namespace Soso.Net.Behaviors
 			{
 				if (message.Destination == DESTINATION.Client)
 				{
-					NetworkLogger.Debug(CHANNEL.Default, "Forwarding message {msg} from {re}", message, remoteInfo);
+					NetworkLogger.Debug("Forwarding message {msg} from {re}", message, remoteInfo);
 					forwardMessages.Add(message);
 				}
 				else if (message.Destination == DESTINATION.Server)

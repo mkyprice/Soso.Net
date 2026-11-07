@@ -4,11 +4,8 @@ using Soso.Net.Behaviors.Rpc;
 using Soso.Net.Components.NetworkedBodies.Helpers;
 using Soso.Net.Components.NetworkedBodies.Packets;
 using Soso.Net.Components.NetworkedBodies.Snapshots;
-using Soso.Net.Logging;
 using Soso.Net.Models;
-using Soso.Net.Models.Packets;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Components.NetworkedBodies
 {

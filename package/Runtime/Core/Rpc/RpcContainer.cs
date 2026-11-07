@@ -2,7 +2,6 @@ using Soso.Net.Logging;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
 using System;
-using System.Collections.Generic;
 using Soso.Net.Core.Instances;
 
 namespace Soso.Net.Behaviors.Rpc
@@ -20,7 +19,7 @@ namespace Soso.Net.Behaviors.Rpc
 			TargetId = Target.GetLocalId();
 			_manager = manager;
 			_cache = RpcCache.Get(target.GetType());
-			NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Created {name} for {target}({id}). RPCs: {rpcCount}", 
+			NetworkLogger.Debug("Created {name} for {target}({id}). RPCs: {rpcCount}", 
 				nameof(RpcContainer), Target.GetType().Name, TargetId, _cache.Count);
 		}
 		
@@ -29,7 +28,7 @@ namespace Soso.Net.Behaviors.Rpc
 			var method = _cache.GetRpcKey(function.Method);
 			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
+				NetworkLogger.Error("{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
 			}
 
@@ -67,7 +66,7 @@ namespace Soso.Net.Behaviors.Rpc
 			var method = _cache.GetRpcKey(function.Method);
 			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
+				NetworkLogger.Error("{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
 			}
 
@@ -109,7 +108,7 @@ namespace Soso.Net.Behaviors.Rpc
 			var method = _cache.GetRpcKey(function.Method);
 			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
+				NetworkLogger.Error("{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
 			}
 
@@ -152,7 +151,7 @@ namespace Soso.Net.Behaviors.Rpc
 			var method = _cache.GetRpcKey(function.Method);
 			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
+				NetworkLogger.Error("{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
 			}
 
@@ -196,7 +195,7 @@ namespace Soso.Net.Behaviors.Rpc
 			var method = _cache.GetRpcKey(function.Method);
 			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
+				NetworkLogger.Error("{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
 			}
 
@@ -241,7 +240,7 @@ namespace Soso.Net.Behaviors.Rpc
 			var method = _cache.GetRpcKey(function.Method);
 			if (_cache.TryGetValue(method, out var rpc) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
+				NetworkLogger.Error("{rpc} is not registered on target: {target}", function.Method.Name, Target.GetType().Name);
 				return;
 			}
 
@@ -292,13 +291,13 @@ namespace Soso.Net.Behaviors.Rpc
 				}
 				catch (Exception e)
 				{
-					NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{rpc} ({id}) failed with exception: {e}\n{st}", 
+					NetworkLogger.Error("{rpc} ({id}) failed with exception: {e}\n{st}", 
 						handler.Method.Name, rpc.Method, e.Message, e.StackTrace);
 				}
 			}
 			else
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "RPC {id} not found on target {target}", rpc.SourceId, Target);
+				NetworkLogger.Error("RPC {id} not found on target {target}", rpc.SourceId, Target);
 			}
 		}
 	}

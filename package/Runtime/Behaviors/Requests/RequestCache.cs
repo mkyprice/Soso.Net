@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Soso.Net.Logging;
-using UnityEditor;
 
 namespace Soso.Net.Behaviors.Rpc
 {
@@ -43,7 +42,7 @@ namespace Soso.Net.Behaviors.Rpc
 
                 string path = $"{response.Path}({method.GetGenericArguments().Length})";
                 _responseCache.Add(path, new ResponseMethod(requestHandler, response, method));
-                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Caching method {m}", path);
+                NetworkLogger.Debug("Caching method {m}", path);
             }
         }
     }

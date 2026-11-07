@@ -44,7 +44,7 @@ namespace Soso.Net.Messaging
 			}
 			else
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "No processor configured for message {msg} on channel {channel}", message, channel);
+				NetworkLogger.Error("No processor configured for message {msg} on channel {channel}", message, channel);
 			}
 		}
 	}

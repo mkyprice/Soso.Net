@@ -9,9 +9,6 @@
     "url": "https://chronicvagrant.com",
     "email": "chronicvagrant@gmail.com"
   },
-  "dependencies": {
-    "com.chronicvagrant.soso-utils": "1.1.4"
-  },
   "keywords": [
     "networking",
     "multiplayer"

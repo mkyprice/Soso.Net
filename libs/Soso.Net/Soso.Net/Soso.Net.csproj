@@ -7,13 +7,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\..\Soso.Serialization\libs\Soso.Serialization\Soso.Serialization\Soso.Serialization.csproj" />
-        <ProjectReference Include="..\..\..\..\Soso.Utils\libs\Soso.Utils\Soso.Utils\Soso.Utils.csproj" ExcludeAssets="runtime" Private="false"/>
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="K4os.Compression.LZ4" Version="1.3.8" />
       <PackageReference Include="K4os.Compression.LZ4.Streams" Version="1.3.8" />
+      <PackageReference Include="soso.serialization" Version="1.0.0" />
+      <PackageReference Include="soso.utils" Version="1.0.0" />
+      <PackageReference Include="soso.utils.logging" Version="1.1.0" />
     </ItemGroup>
 
 </Project>

@@ -13,7 +13,6 @@ using Soso.Net.Models.Packets;
 using Soso.Net.Serializers;
 using Soso.Net.Utils;
 using Soso.Serialization;
-using Soso.Serialization.Binary;
 using UnityEngine;
 
 namespace Soso.Net
@@ -44,13 +43,13 @@ namespace Soso.Net
 			{
 				if (TryGetInstance(out INetworkManager inst) == false)
 				{
-					NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "No network manager found");
+					NetworkLogger.Error("No network manager found");
 					return default;
 				}
 				var session = inst.Session.Session;
 				if (session == null)
 				{
-					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "No session info. Are you offline?");
+					NetworkLogger.Warn("No session info. Are you offline?");
 					return default;
 				}
 				return session.Value;
@@ -85,7 +84,7 @@ namespace Soso.Net
 		{
 			if (TryGetInstance(out INetworkManager inst) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "No network manager found");
+				NetworkLogger.Error("No network manager found");
 				return null;
 			}
 			return inst.Instances;
@@ -95,7 +94,7 @@ namespace Soso.Net
 		{
 			if (TryGetInstance(out INetworkManager inst) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "No network manager found");
+				NetworkLogger.Error("No network manager found");
 				return null;
 			}
 			return inst.Network;
@@ -105,7 +104,7 @@ namespace Soso.Net
 		{
 			if (TryGetInstance(out INetworkManager inst) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "No network manager found");
+				NetworkLogger.Error("No network manager found");
 				return null;
 			}
 			return inst.Spawner;
@@ -188,7 +187,7 @@ namespace Soso.Net
 		{
 			if (TryGetInstance(out INetworkManager inst) == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "No network manager found");
+				NetworkLogger.Error("No network manager found");
 				return default;
 			}
 			CancellationTokenSource tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -240,15 +239,15 @@ namespace Soso.Net
 			}
 			if (await JoinSocketServerInternal(host, virtualPort))
 			{
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Joined socket server. Negotiating ID...");
+				NetworkLogger.Info("Joined socket server. Negotiating ID...");
 				if (await Session.NegotiateId(GetClientId()) == false)
 				{
-					NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to negotiate ID");
+					NetworkLogger.Error("Failed to negotiate ID");
 					return false;
 				}
 				IsOffline = false;
 				IsClient = true;
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Successfully negotiated ID {session}", SessionInfo);
+				NetworkLogger.Info("Successfully negotiated ID {session}", SessionInfo);
 				Instances.Initialize();
 				Network.Initialize();
 				Spawner.InitializeSpawner();

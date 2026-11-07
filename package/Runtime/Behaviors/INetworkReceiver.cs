@@ -4,7 +4,6 @@ using Soso.Net.Core.Instances;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Behaviors
 {
@@ -28,14 +27,14 @@ namespace Soso.Net.Behaviors
 		{
 			if (_isInitialized)
 			{
-				NetworkLogger.Warn(CHANNEL.Default, "{name} is already initialized", name);
+				NetworkLogger.Warn("{name} is already initialized", name);
 			}
 			LocalId = i;
 			NetId = networkIdentity;
 			
 			_isInitialized = true;
 			Initialize();
-			NetworkLogger.Debug(CHANNEL.Default, "Initialized {type} {name} with local ID {id}", nameof(INetworkReceiver), name, LocalId);
+			NetworkLogger.Debug("Initialized {type} {name} with local ID {id}", nameof(INetworkReceiver), name, LocalId);
 		}
 
 		protected virtual void Initialize() { }

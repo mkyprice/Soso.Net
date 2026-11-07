@@ -8,7 +8,6 @@ using Soso.Net.Models;
 using Soso.Net.Objects;
 using UnityEditor;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Behaviors
 {
@@ -41,7 +40,7 @@ namespace Soso.Net.Behaviors
 		{
 			if (IsServerAuthority == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{netId} - {name} is not set to server authority. Baking failed", nameof(NetworkIdentity), gameObject.name);
+				NetworkLogger.Error("{netId} - {name} is not set to server authority. Baking failed", nameof(NetworkIdentity), gameObject.name);
 				return;
 			}
 			BakedId = new NetworkInstanceId(SessionInfo.SERVER_SESSION_ID, gameObject.scene.GetNetworkId(), sequenceNumber);
@@ -68,7 +67,7 @@ namespace Soso.Net.Behaviors
 			// Starting but have not been initialized
 			if (IsInitialized == false)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "{netId} - {name} has not been initialized", nameof(NetworkIdentity), gameObject.name);
+				NetworkLogger.Error("{netId} - {name} has not been initialized", nameof(NetworkIdentity), gameObject.name);
 			}
 		}
 
@@ -84,7 +83,7 @@ namespace Soso.Net.Behaviors
 		{
 			if (InstanceId == NetworkInstanceId.Invalid)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "{name} was not initialized", gameObject.name);
+				NetworkLogger.Error("{name} was not initialized", gameObject.name);
 				return;
 			}
 			INetworkManager.GetSpawner()?.Despawn(this);
@@ -94,7 +93,7 @@ namespace Soso.Net.Behaviors
 		{
 			if (InstanceId == NetworkInstanceId.Invalid)
 			{
-				NetworkLogger.Error(CHANNEL.Default, "{name} was not initialized", gameObject.name);
+				NetworkLogger.Error("{name} was not initialized", gameObject.name);
 				return;
 			}
 			INetworkManager.GetSpawner()?.DespawnLocal(this);
@@ -153,7 +152,7 @@ namespace Soso.Net.Behaviors
 			Type type = Type.GetType(typeName);
 			if (type == null)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Cannot find type {typeName}", typeName);
+				NetworkLogger.Error("Cannot find type {typeName}", typeName);
 				return;
 			}
 			var receiver = gameObject.AddComponent(type) as INetworkReceiver;
@@ -219,13 +218,13 @@ namespace Soso.Net.Behaviors
 				id = sessionId;
 			}
 
-			NetworkLogger.Debug(CHANNEL.Default, "Attempting to take ownership of {a} to {b}. Current authority: {c}", gameObject.name, id, AuthorityId);
+			NetworkLogger.Debug("Attempting to take ownership of {a} to {b}. Current authority: {c}", gameObject.name, id, AuthorityId);
 			_authorityOverride.Set(id);
 		}
 
 		public void SetOwner(ushort id)
 		{
-			NetworkLogger.Debug(CHANNEL.Default, "Attempting to set ownership of {a} to {b}. Current authority: {c}", gameObject.name, id, AuthorityId);
+			NetworkLogger.Debug("Attempting to set ownership of {a} to {b}. Current authority: {c}", gameObject.name, id, AuthorityId);
 			_authorityOverride.Set(id);
 		}
 
@@ -235,14 +234,14 @@ namespace Soso.Net.Behaviors
 			{
 				return;
 			}
-			NetworkLogger.Debug(CHANNEL.Default, "Giving {id} up ownership of {a}", AuthorityId, gameObject.name);
+			NetworkLogger.Debug("Giving {id} up ownership of {a}", AuthorityId, gameObject.name);
 			_authorityOverride.Set(0);
 		}
 
 		private void OnAuthorityChanged(ushort previous, ushort next)
 		{
 			_authorityOverrideDebug = next;
-			NetworkLogger.Debug(CHANNEL.Default, "Ownership of {a} transferred from {b} to {c}", gameObject.name, previous, next);
+			NetworkLogger.Debug("Ownership of {a} transferred from {b} to {c}", gameObject.name, previous, next);
 			foreach (var receiver in _receivers)
 			{
 				receiver.OnAuthorityTransferred(previous, next);
