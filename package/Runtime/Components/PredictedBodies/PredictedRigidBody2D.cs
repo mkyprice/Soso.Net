@@ -25,6 +25,8 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(0, 50)] public long MinSendIntervalMs = 33;
         [SerializeField] public bool AllowAuthoritySwap = false;
         [SerializeField, Range(0, 1000)] public long AuthorityDropDelayMs = 200;
+        [SerializeField, Range(100, 5000)] public long AuthorityHeartbeatMs = 1000;
+        [SerializeField, Range(100, 5000)] public long AuthorityHeartbeatTimeoutMs = 2500;
         [SerializeField] public bool Reliable;
         
         public Rigidbody2D Rb;
@@ -40,6 +42,7 @@ namespace Soso.Net.Components.PredictedBodies
         private bool _pendingAuthGiveUp;
         private long _contactExitTime;
         private ushort _pendingGiveUpOwnerId;
+        private long _lastAuthHeartbeatTime;
 
         private void Awake()
         {
@@ -57,15 +60,31 @@ namespace Soso.Net.Components.PredictedBodies
 
         private void FixedUpdate()
         {
+            if (IsInitialized == false)
+            {
+                return;
+            }
             if (IsRecordReady() || _history.Count < 2)
             {
                 RecordState();
             }
-            
-            if (_pendingAuthGiveUp && NetworkTime.Time >= _contactExitTime + AuthorityDropDelayMs)
+
+            var time = NetworkTime.Time;
+            if (_pendingAuthGiveUp && time >= _contactExitTime + AuthorityDropDelayMs)
             {
                 _pendingAuthGiveUp = false;
-                Rpc(RpcRequestGiveUpOwnership, _pendingGiveUpOwnerId, BuildState(NetworkTime.Time));
+                Rpc(RpcRequestGiveUpOwnership, _pendingGiveUpOwnerId, BuildState(time));
+            }
+            if (IsAuthority() && _localContactCount > 0 && time >= _lastAuthHeartbeatTime + AuthorityHeartbeatMs)
+            {
+                _lastAuthHeartbeatTime = time;
+                Rpc(RpcRequestOwnership, INetworkManager.SessionId);
+            }
+            
+            // Auth pruning
+            if (NetId.IsServer && _collisions.Count > 0)
+            {
+                PruneInactiveAuthorityCollisions(time);
             }
         }
 
@@ -283,6 +302,11 @@ namespace Soso.Net.Components.PredictedBodies
             );
         }
 
+        #region Authority Transfer
+
+        
+
+        
         private void OnTriggerEnter2D(Collider2D other) 
             => HandleBodyEntered(other.attachedRigidbody);
         private void OnTriggerExit2D(Collider2D other)
@@ -348,15 +372,7 @@ namespace Soso.Net.Components.PredictedBodies
                 ReceiveState(state);
             }
             
-            if (_collisions.Count == 1)
-            {
-                var nextOwner = _collisions.Keys.First();
-                NetId.SetOwner(nextOwner);
-            }
-            else
-            {
-                NetId.SetOwner(0);
-            }
+            ServerEvaluateAuthority();
         }
 
         [SosoRpc(RPC_CALL_TYPE.Server, false, true)]
@@ -365,9 +381,18 @@ namespace Soso.Net.Components.PredictedBodies
             if (AllowAuthoritySwap == false) return;
 
             _collisions[ownerId] = NetworkTime.Time;
+            ServerEvaluateAuthority();
+        }
+
+        private void ServerEvaluateAuthority()
+        {
             if (_collisions.Count == 1)
             {
-                NetId.SetOwner(ownerId);
+                var nextOwner = _collisions.Keys.First();
+                if (NetId.AuthorityId != nextOwner)
+                {
+                    NetId.SetOwner(nextOwner);
+                }
             }
             else
             {
@@ -375,14 +400,32 @@ namespace Soso.Net.Components.PredictedBodies
             }
         }
 
-        public override void OnAuthorityTransferred(ushort prevAuthority, ushort newAuthority)
+        private HashSet<ushort> _authRemoveCache = new HashSet<ushort>();
+        private void PruneInactiveAuthorityCollisions(long time)
         {
-            var sId = INetworkManager.SessionId;
+            _authRemoveCache.Clear();
             
-            // Record auth transfer time
-            if (sId == prevAuthority || sId == newAuthority)
+            foreach (var kvp in _collisions)
             {
+                var owner = kvp.Key;
+                var heartbeatTime = kvp.Value;
+                var lastUpdateDiff = time - heartbeatTime;
+                if (lastUpdateDiff >= AuthorityHeartbeatTimeoutMs)
+                {
+                    NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Dropping inactive collision {id} from {me}. Last update: {t}", owner, name, lastUpdateDiff);
+                    _authRemoveCache.Add(owner);
+                }
             }
+            if (_authRemoveCache.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var owner in _authRemoveCache)
+            {
+                _collisions.Remove(owner);
+            }
+            ServerEvaluateAuthority();
         }
 
         private bool TryGetBody(Rigidbody2D collision, out NetworkedRigidBody2D rb)
@@ -393,5 +436,7 @@ namespace Soso.Net.Components.PredictedBodies
             
             return collision.TryGetComponent(out rb);
         }
+        
+        #endregion
     }
 }
