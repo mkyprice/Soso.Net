@@ -138,8 +138,8 @@ namespace Soso.Net
                 Session = client,
                 ExistingUsers = _sessionMap.Values.ToArray(),
             };
-            int length = _serializer.Write(returnNegotiation);
-            connection.Send(_serializer.SendBuffer, 0, length, SOSO_SEND_TYPE.Reliable, 0);
+            int length = _serializer.Write(returnNegotiation, 0);
+            connection.Send(_serializer.SendBuffer, 0, length, SOSO_SEND_TYPE.Reliable);
             
             INetworkManager.GetInstance().Broadcast(client, 0, SOSO_SEND_TYPE.Reliable);
         }

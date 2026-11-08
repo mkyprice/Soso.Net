@@ -15,7 +15,7 @@ namespace Soso.Net.Benchmarks
 		{
 		}
 		
-		public void Broadcast(string message, int channel)
+		public void Broadcast(string message, ushort channel)
 		{
 			var bytes = Encoding.ASCII.GetBytes(message);
 			Broadcast(bytes, channel);
@@ -39,7 +39,7 @@ namespace Soso.Net.Benchmarks
 			NetworkLogger.Info("Connection changed {connection.GetConnectionId()} - {status}", connection.GetConnectionId(), status);
 		}
 
-		public override void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
+		public override void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber)
 		{
 			string message =  Encoding.ASCII.GetString(data);
 			if (LogMessage) NetworkLogger.Info("Conn:{connection.GetConnectionId()} Channel:{channel} Time:{timestamp} Num:{messageNumber} - {message}", connection.GetConnectionId(), channel, timestamp, messageNumber, message);

@@ -62,13 +62,13 @@ namespace Soso.Net.Transports.Default
             NetworkLogger.Info($"Added connection {obj}");
         }
 
-        public override void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
+        public override void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber)
         {
             NetworkLogger.Debug($"{nameof(DefaultSocketManager)}{connection.GetConnectionId()} - Received message of size {data.Length}, num: {messageNumber}, time: {timestamp}, channel: {channel}");
             _connections[connection.GetConnectionId()].HandleMessage(data, timestamp, messageNumber, channel);
         }
 
-        public void SendTo(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, int channel, ulong connectionId)
+        public void SendTo(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ushort channel, ulong connectionId)
         {
             if (_connections.TryGetValue(connectionId, out var connection))
             {

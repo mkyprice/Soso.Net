@@ -51,7 +51,7 @@ namespace Soso.Net
 			ReadPacketsFromReader();
 		}
 
-		public void Send(ReadOnlySpan<byte> data, int channel, int packetType)
+		public void Send(ReadOnlySpan<byte> data, ushort channel, int packetType)
 		{
 			Packet packet = Packet.Create(packetType, channel, data);
 

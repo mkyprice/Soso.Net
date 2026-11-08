@@ -279,30 +279,30 @@ namespace Soso.Net
 		protected abstract Awaitable<bool> JoinSocketServerInternal(ulong host, int virtualPort = 0);
 
 		private MessageSerializer _serializer = new MessageSerializer(1 * 1024 * 1024);
-		public void Send<T>(T message, int channel, SOSO_SEND_TYPE sendType)
+		public void Send<T>(T message, ushort channel, SOSO_SEND_TYPE sendType, ushort lane = 0)
 		{
 			lock (_serializer)
 			{
-				int length = _serializer.Write(message);
-				Send(_serializer.SendBuffer, 0, length, sendType, channel);
+				int length = _serializer.Write(message, channel);
+				Send(_serializer.SendBuffer, 0, length, sendType, lane);
 			}
 		}
 
-		public void Broadcast<T>(T message, int channel, SOSO_SEND_TYPE sendType)
+		public void Broadcast<T>(T message, ushort channel, SOSO_SEND_TYPE sendType, ushort lane = 0)
 		{
 			lock (_serializer)
 			{
-				int length = _serializer.Write(message);
+				int length = _serializer.Write(message, channel);
 
 				foreach (var session in Session.GetUsers())
 				{
-					SendTo(_serializer.SendBuffer, 0, length, sendType, session.ConnectionId, channel);
+					SendTo(_serializer.SendBuffer, 0, length, sendType, session.ConnectionId, lane);
 				}
 			}
 		}
 		
-		protected abstract void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, int channel);
-		protected abstract void SendTo(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ulong connectionId, int channel);
+		protected abstract void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ushort lane);
+		protected abstract void SendTo(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ulong connectionId, ushort lane);
 		protected abstract void DisconnectInternal();
 		public abstract ulong GetClientId();
 

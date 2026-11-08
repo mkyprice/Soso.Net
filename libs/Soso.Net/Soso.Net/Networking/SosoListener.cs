@@ -41,7 +41,7 @@ public class SosoListener : ISocketProcessor
         }
     }
 
-    public void OnMessage(SosoSocket socket, int packetType, ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
+    public void OnMessage(SosoSocket socket, int packetType, ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber)
     {
         if (socket.State.Status == CONNECTION_STATUS.Connecting ||
             socket.State.Status == CONNECTION_STATUS.None)
@@ -81,5 +81,5 @@ public interface ISocketManager
 {
     bool AcceptConnection(SosoSocket connection);
     void ConnectionChanged(SosoSocket connection, CONNECTION_STATUS status);
-    void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber);
+    void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber);
 }

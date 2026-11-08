@@ -14,7 +14,7 @@ namespace Soso.Net
         public static long PingIntervalMs = 2000;
         
         private static readonly Dictionary<ushort, RemoteInfo> _connectionInfo = new Dictionary<ushort, RemoteInfo>();
-        private static readonly int PING_CHANNEL = 0;
+        private static readonly ushort PING_CHANNEL = 0;
         public static long TimeAdjustmentMs { get; set; }
         private static long _clientServerDeltaMs;
         private static long[] _clientServerDeltaWindow = new long[10];

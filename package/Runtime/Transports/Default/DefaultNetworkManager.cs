@@ -101,24 +101,24 @@ namespace Soso.Net.Transports.Default
             }
         }
 
-        protected override void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, int channel)
+        protected override void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ushort lane)
         {
             if (_connectionManager == null)
             {
                 NetworkLogger.Error($"Tried to send message but connection manager was null");
                 return;
             }
-            _connectionManager.MyConnection.Send(data, offset, length, sendType, channel);
+            _connectionManager.MyConnection.Send(data, offset, length, sendType, lane);
         }
 
-        protected override void SendTo(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ulong connectionId, int channel)
+        protected override void SendTo(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ulong connectionId, ushort lane)
         {
             if (_socketManager == null)
             {
                 NetworkLogger.Error($"Tried to send message but socket manager was null");
                 return;
             }
-            _socketManager.SendTo(data, offset, length, sendType, channel, connectionId);
+            _socketManager.SendTo(data, offset, length, sendType, lane, connectionId);
         }
 
         public override ulong GetClientId()

@@ -12,7 +12,7 @@ namespace Soso.Net
 			Listener = new SosoListener(listener, this);
 		}
 
-		public void Broadcast(Span<byte> data, int channel)
+		public void Broadcast(Span<byte> data, ushort channel)
 		{
 			foreach (SosoSocket socket in Listener.Sockets)
 			{
@@ -32,6 +32,6 @@ namespace Soso.Net
 
 		public abstract void ConnectionChanged(SosoSocket connection, CONNECTION_STATUS status);
 
-		public abstract void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber);
+		public abstract void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber);
 	}
 }

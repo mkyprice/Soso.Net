@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Soso.Net.Messaging;
 using Soso.Net.Models;
+using Soso.Net.Utils;
 using Soso.Serialization;
 using Soso.Serialization.Binary;
 
@@ -52,18 +53,16 @@ namespace Soso.Net.Transports.Default
             }
         }
         
-        public void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, int channel)
+        public void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ushort lane)
         {
-            Connection.Send(new ReadOnlySpan<byte>(data, offset, length), channel, length);
+            Connection.Send(new ReadOnlySpan<byte>(data, offset, length), lane, length);
         }
         
-        public void HandleMessage(ReadOnlySpan<byte> bytes, long recvTime, long messageNum, int channel)
+        public void HandleMessage(ReadOnlySpan<byte> bytes, long recvTime, long messageNum, ushort lane)
         {
-            ByteReader reader = new ByteReader(bytes);
-            
-            object obj = SosoSerializer.Deserialize(ref reader);
+            var result = MessageSerializer.Read(bytes);
 
-            var message = new QueuedMessage(obj, channel, recvTime, messageNum);
+            var message = new QueuedMessage(result.Data, result.Channel, recvTime, messageNum);
 
             // Enqueue message
             _receiveQueue.Enqueue(message);

@@ -70,8 +70,8 @@ namespace Soso.Net.Behaviors.Rpc
 		        Response = response,
 	        };
 
-	        int length = _serializer.Write(responsePacket);
-	        connection.Send(_serializer.SendBuffer, 0, length, SOSO_SEND_TYPE.Reliable, 0);
+	        int length = _serializer.Write(responsePacket, 0);
+	        connection.Send(_serializer.SendBuffer, 0, length, SOSO_SEND_TYPE.Reliable);
         }
 
         private void OnResponseReceived(ResponsePacket response, long arg2, long arg3, IUserConnection connection)
