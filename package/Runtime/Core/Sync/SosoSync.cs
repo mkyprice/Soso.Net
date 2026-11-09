@@ -156,7 +156,6 @@ namespace Soso.Net.Core.Sync
             {
                 return;
             }
-
             var time = NetworkTime.Time;
             SyncCall call = new SyncCall()
             {
@@ -168,7 +167,15 @@ namespace Soso.Net.Core.Sync
                 SyncId = SyncId,
                 Arg = _dirtyValue,
             };
-            _manager.Send(call, 0, SOSO_SEND_TYPE.Reliable);
+            
+            if (INetworkManager.TryGetInstance(out var net) == false || net.IsOffline)
+            {
+                Process(call);
+            }
+            else
+            {
+                _manager.Send(call, 0, SOSO_SEND_TYPE.Reliable);
+            }
             _isDirty = false;
         }
 
