@@ -1,14 +1,15 @@
 using System;
 using Soso.Net.Components;
+using Soso.Net.Core.Instances;
 using Soso.Net.Logging;
+using Soso.Net.Models;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Behaviors
 {
-	public abstract class INetworkReceiver : MonoBehaviour, INetworkPoolable
+	public abstract class INetworkReceiver : MonoBehaviour, INetworkPoolable, INetworkProcessor
 	{
-		[NonSerialized] public BaseNetworkInstance NetId;
+		[NonSerialized] public NetworkIdentity NetId;
 		[NonSerialized] public ushort LocalId;
 		public bool IsInitialized => _isInitialized;
 		private bool _isInitialized = false;
@@ -22,23 +23,33 @@ namespace Soso.Net.Behaviors
 			NetId?.Deregister(this);
 		}
 
-		public void Initialize(ushort i, BaseNetworkInstance networkIdentity)
+		public void Initialize(ushort i, NetworkIdentity networkIdentity)
 		{
 			if (_isInitialized)
 			{
-				NetworkLogger.Warn(CHANNEL.Default, "{name} is already initialized", name);
+				NetworkLogger.Warn("{name} is already initialized", name);
 			}
 			LocalId = i;
 			NetId = networkIdentity;
 			
 			_isInitialized = true;
 			Initialize();
-			NetworkLogger.Debug(CHANNEL.Default, "Initialized {type} {name} with local ID {id}", nameof(INetworkReceiver), name, LocalId);
+			NetworkLogger.Debug("Initialized {type} {name} with local ID {id}", nameof(INetworkReceiver), name, LocalId);
 		}
 
 		protected virtual void Initialize() { }
 
+		public virtual void OnAuthorityTransferred(ushort prevAuthority, ushort newAuthority) { }
+
 		#region RPC
+
+		public bool IsAuthority() => NetId?.IsAuthority() ?? true;
+		public ushort AuthorityId => NetId?.AuthorityId ?? SessionInfo.SERVER_SESSION_ID;
+
+		public ushort GetLocalId()
+		{
+			return LocalId;
+		}
 		
 		public void Rpc(Action function)
 			=> NetId.RPC.Rpc(function, LocalId);

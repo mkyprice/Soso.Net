@@ -6,7 +6,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Extensions
 {
@@ -29,17 +28,17 @@ namespace Soso.Net.Extensions
 
                 if (identity.IsServerAuthority == false)
                 {
-                    NetworkLogger.Warn(CHANNEL.Default, "Identity {name} is not marked as ServerAuthority", identity.gameObject.name);
+                    NetworkLogger.Warn("Identity {name} is not marked as ServerAuthority", identity.gameObject.name);
                     continue;
                 }
                 
                 currentSequence++;
                 totalbaked++;
                 identity.BakeSceneId(currentSequence);
-                NetworkLogger.Info(CHANNEL.Default, "Baked {name}'s identity as {id}", identity.gameObject.name, identity.BakedId);
+                NetworkLogger.Info("Baked {name}'s identity as {id}", identity.gameObject.name, identity.BakedId);
             }
 
-            NetworkLogger.Info(CHANNEL.Default, "Successfully baked {total} identities", totalbaked);
+            NetworkLogger.Info("Successfully baked {total} identities", totalbaked);
             
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }

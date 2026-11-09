@@ -8,7 +8,7 @@ namespace Soso.Net
 	public interface IConnectionManager
 	{
 		void OnStateChanged(CONNECTION_STATUS status);
-		void OnMessage(ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber);
+		void OnMessage(ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber);
 	}
 	
 	public class SosoConnection : ISocketProcessor
@@ -47,11 +47,11 @@ namespace Soso.Net
 			Connection.Shutdown();
 		}
 
-		public void Send(Span<byte> data, int channel)
+		public void Send(Span<byte> data, ushort channel)
 		{
 			if (Status != CONNECTION_STATUS.Connected)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Send failed - you are not connected. Status is {Status}", Status);
+				NetworkLogger.Warn("Send failed - you are not connected. Status is {Status}", Status);
 				return;
 			}
 			Connection.Send(data, channel, 0);
@@ -71,7 +71,7 @@ namespace Soso.Net
 		/// <param name="channel"></param>
 		/// <param name="timestamp">UTC ticks</param>
 		/// <param name="messageNumber"></param>
-		public void OnMessage(SosoSocket socket, int packetType, ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
+		public void OnMessage(SosoSocket socket, int packetType, ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber)
 		{
 			if (Status == CONNECTION_STATUS.Connecting)
 			{
@@ -85,7 +85,7 @@ namespace Soso.Net
 				}
 				else
 				{
-					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Received packet during connecting phase");
+					NetworkLogger.Warn("Received packet during connecting phase");
 				}
 			}
 			else

@@ -3,8 +3,8 @@ using Soso.Net.Components.NetworkedBodies.Helpers;
 using Soso.Net.Components.NetworkedBodies.Packets;
 using Soso.Net.Components.NetworkedBodies.Snapshots;
 using Soso.Net.Logging;
+using Soso.Net.Models;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Components.NetworkedBodies
 {
@@ -18,6 +18,7 @@ namespace Soso.Net.Components.NetworkedBodies
         [SerializeField] public float AngularVelocitySensitivity = 0.1f;
 
         public Rigidbody2D Rb;
+
         private SyncRigidBody2D _lastSentSync;
 
         protected override void Awake()
@@ -26,7 +27,7 @@ namespace Soso.Net.Components.NetworkedBodies
             
             if (Target.gameObject.TryGetComponent(out Rb) == false)
             {
-                NetworkLogger.Error(CHANNEL.Default, "No RigidBody attached to {name}", Target.gameObject.name);
+                NetworkLogger.Error("No RigidBody attached to {name}", Target.gameObject.name);
             }
         }
 
@@ -34,7 +35,7 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             base.Initialize();
 
-            if (NetId.IsOwner == false)
+            if (NetId.IsAuthority() == false)
             {
                 Rb.bodyType = RigidbodyType2D.Kinematic;
             }
@@ -48,7 +49,7 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             base.FixedUpdate();
             
-            if (NetId != null && NetId.IsOwner == false)
+            if (NetId != null && NetId.IsAuthority() == false)
             {
                 Rb.bodyType = RigidbodyType2D.Kinematic;
             }
@@ -67,7 +68,14 @@ namespace Soso.Net.Components.NetworkedBodies
             {
                 _lastSentSync = rbSync;
 
-                Rpc(RpcSyncRb, rbSync);
+                if (Reliable)
+                {
+                    Rpc(RpcSyncRbReliable, rbSync);
+                }
+                else
+                {
+                    Rpc(RpcSyncRbUnreliable, rbSync);
+                }
             }
         }
 
@@ -97,8 +105,15 @@ namespace Soso.Net.Components.NetworkedBodies
             // Rb.SyncTransform();
         }
 
-        [SosoRpc(RPC_CALL_TYPE.Client, false, false)]
-        private void RpcSyncRb(SyncRigidBody2D sync)
+        [SosoRpc(RPC_CALL_TYPE.Client, false, false, SOSO_SEND_TYPE.Reliable)]
+        private void RpcSyncRbReliable(SyncRigidBody2D sync)
+        {
+            Rb.linearVelocity = sync.LinearVelocity;
+            Rb.angularVelocity = sync.AngularVelocity;
+        }
+
+        [SosoRpc(RPC_CALL_TYPE.Client, false, false, SOSO_SEND_TYPE.Unreliable)]
+        private void RpcSyncRbUnreliable(SyncRigidBody2D sync)
         {
             Rb.linearVelocity = sync.LinearVelocity;
             Rb.angularVelocity = sync.AngularVelocity;

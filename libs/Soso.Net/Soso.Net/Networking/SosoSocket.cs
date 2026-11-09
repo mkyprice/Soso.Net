@@ -41,7 +41,7 @@ namespace Soso.Net
 		{
 			if (_socket.Poll() == false)
 			{
-				NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Shutting down {id}", GetConnectionId());
+				NetworkLogger.Info("Shutting down {id}", GetConnectionId());
 				SetState(CONNECTION_STATUS.Disconnected);
 				SosoNetwork.RemoveSocket(this);
 				return;
@@ -51,7 +51,7 @@ namespace Soso.Net
 			ReadPacketsFromReader();
 		}
 
-		public void Send(ReadOnlySpan<byte> data, int channel, int packetType)
+		public void Send(ReadOnlySpan<byte> data, ushort channel, int packetType)
 		{
 			Packet packet = Packet.Create(packetType, channel, data);
 
@@ -75,7 +75,7 @@ namespace Soso.Net
 			}
 			catch (Exception e)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Shutdown failed with error: {e.Message}", e);
+				NetworkLogger.Error("Shutdown failed with error: {e.Message}", e);
 			}
 			SosoNetwork.RemoveSocket(this);
 		}
@@ -89,7 +89,7 @@ namespace Soso.Net
 		{
 			if (State.Status == state)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "State is already set to {state}", state);
+				NetworkLogger.Warn("State is already set to {state}", state);
 				return;
 			}
 			State.SetState(state);
@@ -148,7 +148,7 @@ namespace Soso.Net
 				PacketHeader header = PacketHeader.Peek(ref reader);
 				if (reader.Count - reader.Position < header.Length + PacketHeader.HEADER_SIZE)
 				{
-					NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Packet size was too small. Expected: {header.Length}. Buffer: {buff}", header.Length, reader.Count - reader.Position);
+					NetworkLogger.Warn("Packet size was too small. Expected: {header.Length}. Buffer: {buff}", header.Length, reader.Count - reader.Position);
 					break;
 				}
 

@@ -33,7 +33,7 @@ namespace Soso.Net.Utils
         {
             if (_sequencePerScene.TryGetValue(sceneId, out ulong currentSequence))
             {
-                NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Tried to set sequence offset for scene {id} but it was not 0", sceneId);
+                NetworkLogger.Warn("Tried to set sequence offset for scene {id} but it was not 0", sceneId);
             }
             _sequencePerScene[sceneId] = offset;
         }

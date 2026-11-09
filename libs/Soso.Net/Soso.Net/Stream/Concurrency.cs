@@ -66,7 +66,7 @@ namespace Soso.Net.Stream
 				waitCount++;
 				if (waitCount % 100 == 0)
 				{
-					NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Waited {waitCount} times...", waitCount);
+					NetworkLogger.Info("Waited {waitCount} times...", waitCount);
 				}
 			}
 			_context.GetContextAsync();
@@ -77,7 +77,7 @@ namespace Soso.Net.Stream
 		{
 			if (Interlocked.Exchange(ref _lock, 0) != 1)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Unlocked an unlocked context");
+				NetworkLogger.Warn("Unlocked an unlocked context");
 			}
 		}
 	}

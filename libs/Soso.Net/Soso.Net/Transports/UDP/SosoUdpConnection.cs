@@ -11,13 +11,15 @@ namespace Soso.Net.Transports.UDP
 		public readonly Socket Socket;
 		public readonly EndPoint EndPoint;
 		private ByteBuffer _byteProcessor;
+		private readonly bool _ownsSocket;
 
-		public SosoUdpConnection(EndPoint ep) : this(new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp), ep)
+		public SosoUdpConnection(EndPoint ep, bool ownsSocket) : this(new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp), ep, ownsSocket)
 		{
 		}
 		
-		public SosoUdpConnection(Socket socket, EndPoint ep)
+		public SosoUdpConnection(Socket socket, EndPoint ep, bool ownsSocket)
 		{
+			_ownsSocket = ownsSocket;
 			Socket = socket;
 			EndPoint = ep;
 		}
@@ -33,28 +35,37 @@ namespace Soso.Net.Transports.UDP
 		}
 		public void Process()
 		{
-			if (Socket.Available > 0)
+			if (_ownsSocket == false)
+			{
+				// We are server side and this is not how we process
+				return;
+			}
+			while (Socket.Available > 0)
 			{
 				EndPoint ep = new IPEndPoint(IPAddress.Any, 0);
 				int received = Socket.ReceiveFrom(_byteProcessor.Buffer, ref ep);
-				if (received == 0)
-				{
-					// Shutdown
-				}
 				_byteProcessor.Receive(received);
 			}
 		}
 
+		// Server call for receiving
+		internal void OnReceived(Span<byte> received)
+		{
+			received.CopyTo(_byteProcessor.Buffer);
+			_byteProcessor.Receive(received.Length);
+		}
+		
 		public bool Poll()
 		{
-			NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "There's no point in polling for UDP connection... Stop it...");
 			return true;
 		}
 
 		public void Shutdown()
 		{
-			Socket.Shutdown(SocketShutdown.Both);
-			Socket.Close();
+			if (_ownsSocket)
+			{
+				Socket.Close();
+			}
 		}
 	}
 }

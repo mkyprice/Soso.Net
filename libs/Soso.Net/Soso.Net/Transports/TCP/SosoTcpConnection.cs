@@ -37,7 +37,7 @@ namespace Soso.Net.Transports.TCP
 			}
 			catch (Exception e)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to connect with error: {message}", e.Message);
+				NetworkLogger.Error("Failed to connect with error: {message}", e.Message);
 				throw;
 			}
 		}
@@ -55,13 +55,13 @@ namespace Soso.Net.Transports.TCP
 			}
 			catch (SocketException e)
 			{
-				NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Send failed with error code {errorCode}", e.ErrorCode);
+				NetworkLogger.Warn("Send failed with error code {errorCode}", e.ErrorCode);
 				return 0;
 			}
 		}
 		public void Shutdown()
 		{
-			NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Shutting down socket...");
+			NetworkLogger.Info("Shutting down socket...");
 			Socket.Shutdown(SocketShutdown.Both);
 			Socket.Disconnect(false);
 			Socket.Close();
@@ -91,7 +91,7 @@ namespace Soso.Net.Transports.TCP
 			}
 			catch (SocketException e)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default,"Poll failed with error code {errorCode}", e.ErrorCode);
+				NetworkLogger.Error("Poll failed with error code {errorCode}", e.ErrorCode);
 				return false;
 			}
 			return true;

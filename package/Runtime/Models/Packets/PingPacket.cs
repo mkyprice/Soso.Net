@@ -1,5 +1,4 @@
-﻿using Soso.Net.Serializers;
-using Soso.Serialization;
+﻿using Soso.Serialization;
 using Soso.Serialization.Binary;
 using Soso.Serialization.Serializers;
 
@@ -8,8 +7,8 @@ namespace Soso.Net.Models.Packets
     public struct PingPacket
     {
         public ushort SourceId;
-        public double LocalTimeSec;
-        public long RealtimeSendTicks;
+        public long ServerTimeMs;
+        public long RealtimeSendMs;
         
         public class Serializer : ISerializer<PingPacket>
         {

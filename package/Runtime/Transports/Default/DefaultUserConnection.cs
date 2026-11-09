@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Soso.Net.Messaging;
 using Soso.Net.Models;
+using Soso.Net.Utils;
 using Soso.Serialization;
 using Soso.Serialization.Binary;
 
@@ -10,6 +11,7 @@ namespace Soso.Net.Transports.Default
     public class DefaultUserConnection : IUserConnection
     {
         public ulong Id => Connection.GetConnectionId();
+
         public SosoSocket Connection;
         
         private readonly MessageProcessorManager _messageProcessor;
@@ -44,55 +46,23 @@ namespace Soso.Net.Transports.Default
         {
             if (_receiveQueue.Count > 0)
             {
-                long currentTime = DateTime.UtcNow.Ticks;
-                double lagSimulationSecs = (DefaultNetworkManager.GetInstance() as DefaultNetworkManager)?.LagSimulationSeconds ?? 0;
-                long lagSimulationTicks = TimeSpan.FromSeconds(lagSimulationSecs).Ticks;
-                long randomSimulation = (long)UnityEngine.Random.Range(-lagSimulationTicks / 2f, lagSimulationTicks / 2f);
-                lagSimulationTicks += randomSimulation;
-                while (_receiveQueue.TryPeek(out var next) && next.Time + lagSimulationTicks <= currentTime)
+                while (_receiveQueue.TryDequeue(out var next))
                 {
-                    next = _receiveQueue.Dequeue();
                     _messageProcessor.Process(this, next.Data, next.MessageNum, next.Time, next.Channel);
                 }
             }
-            
-            if (_sendQueue.Count > 0)
-            {
-                long currentTime = DateTime.UtcNow.Ticks;
-                double lagSimulationSecs = (DefaultNetworkManager.GetInstance() as DefaultNetworkManager)?.LagSimulationSeconds ?? 0;
-                long lagSimulationTicks = TimeSpan.FromSeconds(lagSimulationSecs).Ticks;
-                long randomSimulation = (long)UnityEngine.Random.Range(-lagSimulationTicks / 2f, lagSimulationTicks / 2f);
-                lagSimulationTicks += randomSimulation;
-                while (_sendQueue.TryPeek(out var next) && next.Time + lagSimulationTicks <= currentTime)
-                {
-                    next = _sendQueue.Dequeue();
-                
-                    ByteWriter writer = new ByteWriter(_sendBuffer);
-
-                    writer.Write(next.Channel);
-            
-                    SosoSerializer.Serialize(ref writer, next.Data, SerializationFlags.EmbedType);
-
-                    int length = writer.Position;
-
-                    Connection.Send(new Span<byte>(_sendBuffer).Slice(0, length), 0, length);
-                }
-            }
-        }
-
-        public void Send<T>(T data, int channel, SOSO_SEND_TYPE sendType)
-        {
-            _sendQueue.Enqueue(new QueuedMessage(data, channel, DateTime.UtcNow.Ticks, 0));
         }
         
-        public void HandleMessage(ReadOnlySpan<byte> bytes, long recvTime, long messageNum)
+        public void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ushort lane)
         {
-            ByteReader reader = new ByteReader(bytes);
-            int channel = reader.ReadInt();
-            
-            object obj = SosoSerializer.Deserialize(ref reader);
+            Connection.Send(new ReadOnlySpan<byte>(data, offset, length), lane, length);
+        }
+        
+        public void HandleMessage(ReadOnlySpan<byte> bytes, long recvTime, long messageNum, ushort lane)
+        {
+            var result = MessageSerializer.Read(bytes);
 
-            var message = new QueuedMessage(obj, channel, recvTime, messageNum);
+            var message = new QueuedMessage(result.Data, result.Channel, recvTime, messageNum);
 
             // Enqueue message
             _receiveQueue.Enqueue(message);

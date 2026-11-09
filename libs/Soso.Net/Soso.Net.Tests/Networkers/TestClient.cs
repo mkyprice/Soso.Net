@@ -12,13 +12,13 @@ namespace Soso.Net.Tests.Networkers
 		{
 		}
 		
-		public void Send(string message, int channel)
+		public void Send(string message, ushort channel)
 		{
 			var bytes = Encoding.ASCII.GetBytes(message);
 			Send(bytes, channel);
 		}
 
-		public override void OnMessage(ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
+		public override void OnMessage(ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber)
 		{
 			string message =  Encoding.ASCII.GetString(data);
 			if (LogMessage) Console.WriteLine($"Conn:{Connection.Id}Channel:{channel}Time:{DateTime.FromBinary(timestamp)}Num:{messageNumber} - {message}");

@@ -30,10 +30,10 @@ namespace Soso.Net.Transports.Default
             }
         }
 
-        public override void OnMessage(ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
+        public override void OnMessage(ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber)
         {
-            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, $"{nameof(DefaultConnectionManager)}{MyConnection.Id} - Received message of size {data.Length}, num: {messageNumber}, time: {timestamp}, channel: {channel}");
-            MyConnection.HandleMessage(data, timestamp, messageNumber);
+            NetworkLogger.Debug($"{nameof(DefaultConnectionManager)}{MyConnection.Id} - Received message of size {data.Length}, num: {messageNumber}, time: {timestamp}, channel: {channel}");
+            MyConnection.HandleMessage(data, timestamp, messageNumber, channel);
         }
     }
 }

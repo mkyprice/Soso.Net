@@ -12,7 +12,7 @@ public abstract class SosoConnectionManager : IConnectionManager
         Connection = new SosoConnection(id, connection, this);
     }
 
-    public void Send(Span<byte> data, int channel)
+    public void Send(Span<byte> data, ushort channel)
     {
         Connection.Send(data, channel);
     }
@@ -24,5 +24,5 @@ public abstract class SosoConnectionManager : IConnectionManager
     
     public abstract void OnStateChanged(CONNECTION_STATUS status);
 
-    public abstract void OnMessage(ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber);
+    public abstract void OnMessage(ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber);
 }

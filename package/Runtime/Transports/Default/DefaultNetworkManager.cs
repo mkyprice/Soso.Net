@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using Soso.Net.Logging;
 using Soso.Net.Models;
+using Soso.Utils.Logging;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -9,18 +10,23 @@ namespace Soso.Net.Transports.Default
 {
     public class DefaultNetworkManager : INetworkManager
     {
-        [SerializeField] public double LagSimulationSeconds;
+        [SerializeField] public long LagSimulationMs;
         [SerializeField] private string Ip;
         [SerializeField] private int Port;
         [SerializeField] private string ServerUrl;
+        [SerializeField] private LOG_LEVEL LogLevel;
         
         [SerializeField] public bool ShouldSpoofPlayer;
         [SerializeField] public ulong PlayerId;
         
-        public override bool IsOffline => _connectionManager == null;
-        
         private DefaultConnectionManager _connectionManager;
         private DefaultSocketManager _socketManager;
+
+        protected override Awaitable InitializeAsync()
+        {
+            NetworkLogger.Level = LogLevel;
+            return base.InitializeAsync();
+        }
 
         private void OnValidate()
         {
@@ -30,6 +36,8 @@ namespace Soso.Net.Transports.Default
             {
                 PlayerId = (ulong)Random.Range(0, 1000);
             }
+
+            NetworkLogger.Level = LogLevel;
         }
 
         protected override Awaitable ShutdownAsync()
@@ -74,7 +82,7 @@ namespace Soso.Net.Transports.Default
             }
             catch (Exception e)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Process failed for network with error: {msg}\n{st}", e.Message, e.StackTrace);
+                NetworkLogger.Error("Process failed for network with error: {msg}\n{st}", e.Message, e.StackTrace);
             }
         }
 
@@ -93,32 +101,24 @@ namespace Soso.Net.Transports.Default
             }
         }
 
-        public override void Send<T>(T message, int channel, SOSO_SEND_TYPE sendType)
+        protected override void Send(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ushort lane)
         {
             if (_connectionManager == null)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Tried to send message type: {typeof(T).Name} but connection manager was null");
+                NetworkLogger.Error($"Tried to send message but connection manager was null");
                 return;
             }
-            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, $"{nameof(Send)} - Msg: {message} Chl: {channel}");
-            _connectionManager.MyConnection.Send(message, channel, sendType);
+            _connectionManager.MyConnection.Send(data, offset, length, sendType, lane);
         }
 
-        public override void Broadcast<T>(T message, int channel, SOSO_SEND_TYPE sendType)
+        protected override void SendTo(byte[] data, int offset, int length, SOSO_SEND_TYPE sendType, ulong connectionId, ushort lane)
         {
             if (_socketManager == null)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, $"Tried to send message type: {typeof(T).Name} but socket manager was null");
+                NetworkLogger.Error($"Tried to send message but socket manager was null");
                 return;
             }
-            
-            NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, $"{nameof(Broadcast)} - Msg: {message} Chl: {channel}");
-            _socketManager.Broadcast(message, channel, sendType);
-        }
-
-        public override bool IsHost()
-        {
-            return _socketManager != null || IsOffline;
+            _socketManager.SendTo(data, offset, length, sendType, lane, connectionId);
         }
 
         public override ulong GetClientId()
@@ -144,7 +144,7 @@ namespace Soso.Net.Transports.Default
             }
             catch (Exception e)
             {
-                NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Failed to connect to {ip}:{port} with error: {e.Message}", ip, port, e.Message);
+                NetworkLogger.Error("Failed to connect to {ip}:{port} with error: {e.Message}", ip, port, e.Message);
                 connectionManager = null;
             }
             return connectionManager;

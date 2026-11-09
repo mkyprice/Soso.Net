@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using Soso.Net.Behaviors;
 using Soso.Net.Logging;
 using Soso.Net.Objects;
-using Soso.Utils;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace Soso.Net.Components.Spawning
@@ -63,7 +61,7 @@ namespace Soso.Net.Components.Spawning
             var queue = GetPool(spawnType);
             if (queue.Count > 0)
             {
-                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Spawning {inst} from pool", spawnType);
+                NetworkLogger.Debug("Spawning {inst} from pool", spawnType);
                 instance = queue.Dequeue();
                 if (instance)
                 {
@@ -73,13 +71,13 @@ namespace Soso.Net.Components.Spawning
                 }
                 else
                 {
-                    NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Instance {type} was destroyed in pool", spawnType);
+                    NetworkLogger.Warn("Instance {type} was destroyed in pool", spawnType);
                     instance = null;
                 }
             }
             if (instance is null)
             {
-                NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "Spawning {inst} from initialization", spawnType);
+                NetworkLogger.Debug("Spawning {inst} from initialization", spawnType);
                 var prefab = GetSpawnable(spawnType);
                 if (prefab == null)
                 {
@@ -102,10 +100,10 @@ namespace Soso.Net.Components.Spawning
         {
             if (instance?.gameObject?.scene.isLoaded == false)
             {
-                NetworkLogger.Warn(NetworkLogger.CHANNEL.Default, "Not returning {inst} to pool. Scene is not loaded", spawnType);
+                NetworkLogger.Warn("Not returning {inst} to pool. Scene is not loaded", spawnType);
                 return;
             }
-            NetworkLogger.Info(NetworkLogger.CHANNEL.Default, "Returning {inst} to pool", instance.gameObject.name);
+            NetworkLogger.Info("Returning {inst} to pool", instance.gameObject.name);
             var queue = GetPool(spawnType);
             instance.gameObject.SetActive(false);
             

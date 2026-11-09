@@ -6,10 +6,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Soso.Net", "Soso.Net\Soso.N
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Soso.Net.Tests", "Soso.Net.Tests\Soso.Net.Tests.csproj", "{A55A2BA0-5B9C-4872-917A-8FC16D36D68E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Soso.Utils", "..\..\..\Soso.Utils\libs\Soso.Utils\Soso.Utils\Soso.Utils.csproj", "{C9C1DDAA-DF8C-4B19-9CE9-AC33C7CA6890}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Soso.Serialization", "..\..\..\Soso.Serialization\libs\Soso.Serialization\Soso.Serialization\Soso.Serialization.csproj", "{343CA5B7-AB3D-46E7-A96B-1AED22E27709}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,13 +24,5 @@ Global
 		{A55A2BA0-5B9C-4872-917A-8FC16D36D68E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A55A2BA0-5B9C-4872-917A-8FC16D36D68E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A55A2BA0-5B9C-4872-917A-8FC16D36D68E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C9C1DDAA-DF8C-4B19-9CE9-AC33C7CA6890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C9C1DDAA-DF8C-4B19-9CE9-AC33C7CA6890}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C9C1DDAA-DF8C-4B19-9CE9-AC33C7CA6890}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C9C1DDAA-DF8C-4B19-9CE9-AC33C7CA6890}.Release|Any CPU.Build.0 = Release|Any CPU
-		{343CA5B7-AB3D-46E7-A96B-1AED22E27709}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{343CA5B7-AB3D-46E7-A96B-1AED22E27709}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{343CA5B7-AB3D-46E7-A96B-1AED22E27709}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{343CA5B7-AB3D-46E7-A96B-1AED22E27709}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

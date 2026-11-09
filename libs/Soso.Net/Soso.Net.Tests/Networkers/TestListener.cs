@@ -12,7 +12,7 @@ namespace Soso.Net.Tests.Networkers
 		{
 		}
 		
-		public void Broadcast(string message, int channel)
+		public void Broadcast(string message, ushort channel)
 		{
 			var bytes = Encoding.ASCII.GetBytes(message);
 			Broadcast(bytes, channel);
@@ -39,7 +39,7 @@ namespace Soso.Net.Tests.Networkers
 		{
 		}
 
-		public override void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, int channel, long timestamp, long messageNumber)
+		public override void OnMessage(SosoSocket connection, ReadOnlySpan<byte> data, ushort channel, long timestamp, long messageNumber)
 		{
 			string message =  Encoding.ASCII.GetString(data);
 			if (LogMessage) Console.WriteLine($"Conn:{connection.GetConnectionId()}Channel:{channel}Time:{timestamp}Num:{messageNumber} - {message}");

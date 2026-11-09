@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
 using Soso.Net.Extensions;
-using UnityEngine;
+using Soso.Net.Utils;
 
 namespace Soso.Net.Components.NetworkedBodies.Snapshots
 {
     public static class SnapshotInterpolation
     {
-        public static void Sample<T>(SortedList<double, T> snapshots, double localTime, out int from, out int to, out double time)
+        public static void Sample<T>(SortedList<long, T> snapshots, long localTime, out int from, out int to, out double time)
             where T : ISnapshot
         {
             to = from = -1;
@@ -18,16 +18,16 @@ namespace Soso.Net.Components.NetworkedBodies.Snapshots
                 var b = snapshots.Values[i + 1];
 
                 // PPLogger.Debug(CHANNEL.Network, "LocalTime: {t} RemoteTimeA: {a} RemoteTimeB: {b}", localTime, a.RemoteTime, b.RemoteTime);
-                if (localTime >= a.RemoteTime && localTime <= b.RemoteTime)
+                if (localTime >= a.Timestamp && localTime <= b.Timestamp)
                 {
                     from = i;
                     to = i + 1;
-                    time = Mathf.InverseLerp((float)a.RemoteTime, (float)b.RemoteTime, (float)localTime);
+                    time = NetMath.InverseLerp(a.Timestamp, b.Timestamp, localTime);
                     return;
                 }
             }
 
-            if (snapshots.Values[0].RemoteTime > localTime)
+            if (snapshots.Values[0].Timestamp > localTime)
             {
                 to = from = 0;
                 time = 0;
@@ -39,7 +39,7 @@ namespace Soso.Net.Components.NetworkedBodies.Snapshots
             }
         }
         
-        public static void StepInterpolation<T>(SortedList<double, T> snapshots, double localTime, out T fromSnapshot, out T toSnapshot, out double time)
+        public static void StepInterpolation<T>(SortedList<long, T> snapshots, long localTime, out T fromSnapshot, out T toSnapshot, out double time)
             where T : ISnapshot
         {
             Sample(snapshots, localTime, out int from, out int to, out time);

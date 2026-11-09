@@ -1,5 +1,5 @@
 using System;
-using Soso.Net.Behaviors;
+using Soso.Net.Core.Instances;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
@@ -30,7 +30,7 @@ namespace Soso.Net.Objects
 				return _remoteInfo;
 			}
 		}
-		private SosoConcurrentSortedQueue<double, INetworkMessage> _timedReceiveQueue = new SosoConcurrentSortedQueue<double, INetworkMessage>();
+		private SosoConcurrentSortedQueue<long, INetworkMessage> _timedReceiveQueue = new SosoConcurrentSortedQueue<long, INetworkMessage>();
 		private SosoConcurrentQueue<INetworkMessage> _readyQueue = new SosoConcurrentQueue<INetworkMessage>();
 		
 		public NetworkInstance(NetworkInstanceId id)
@@ -49,12 +49,13 @@ namespace Soso.Net.Objects
 		{
 			if (incoming.SyncTime)
 			{
-				NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{name} enqueuing message: {message} at time {t} (Local time: {lt})", Id, incoming, incoming.Time, NetworkTime.LocalTime);
+				NetworkLogger.Debug("{name} enqueuing message: {message} at time {t} (Local time: {lt})", Id, incoming, incoming.Time, NetworkTime.Time);
 				_timedReceiveQueue.Add(incoming.Time, incoming);
 			}
 			else
 			{
-				_readyQueue.EnqueueFront(incoming);
+				NetworkLogger.Debug("{name} Enqueuing ready message {message}", Id, incoming);
+				_readyQueue.EnqueueBack(incoming);
 			}
 		}
 
@@ -67,11 +68,11 @@ namespace Soso.Net.Objects
 			
 			while (_timedReceiveQueue.TryDequeueFirst(out var message) && message != null)
 			{
-				float messageWait = (float)(message.Time - NetworkTime.LocalTime);
-				if (messageWait > 0.001f)
+				long messageWait = message.Time - NetworkTime.Time;
+				if (messageWait > 0)
 				{
 					_timedReceiveQueue.Add(message.Time, message);
-					NetworkLogger.Debug(NetworkLogger.CHANNEL.Default, "{id} waiting for {wait}s", Id, messageWait);
+					NetworkLogger.Debug("{id} waiting for {wait}s", Id, messageWait);
 					break;
 				}
 
@@ -79,32 +80,20 @@ namespace Soso.Net.Objects
 			}
 
 			int processed = 0;
-			while (processed < MAX_MESSAGES_PER_UPDATE && _readyQueue.TryDequeue(out var message))
+			while (processed < MAX_MESSAGES_PER_UPDATE && _readyQueue.TryPeek(out var message))
 			{
-				processed++;
-				if (Identity.HandleMessage(message) == false)
+				NetworkLogger.Debug("{name} Processing message {message}", Id, message);
+				if (Identity.IsInitialized == false)
 				{
-					// Identity is not ready
-					_readyQueue.EnqueueFront(message);
+					NetworkLogger.Debug("{name} is not ready for message {message}", Id, message);
 					break;
 				}
+				if (_readyQueue.TryDequeue(out message))
+				{
+					Identity.HandleMessage(message);
+					processed++;
+				}
 			}
-		}
-
-		public bool TryDequeueMessage(out INetworkMessage message)
-		{
-			if (_readyQueue.TryDequeue(out message) == false)
-			{
-				return false;
-			}
-			float messageWait = (float)(message.Time - NetworkTime.LocalTime);
-			if (messageWait > 0.001f)
-			{
-				_readyQueue.EnqueueFront(message);
-				message = null;
-				return false;
-			}
-			return true;
 		}
 
 		public override int GetHashCode()

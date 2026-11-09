@@ -1,6 +1,5 @@
 ﻿using Soso.Net.Logging;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net.Components
 {
@@ -36,7 +35,7 @@ namespace Soso.Net.Components
         {
             if (isActiveAndEnabled == false)
             {
-                NetworkLogger.Debug(CHANNEL.Default, "{name} is disabled. Destroying...", name);
+                NetworkLogger.Debug("{name} is disabled. Destroying...", name);
                 Destroy(this);
                 return;
             }
@@ -84,18 +83,18 @@ namespace Soso.Net.Components
                 return;
             }
 
-            NetworkLogger.Debug(CHANNEL.Default, "Initializing {typeof(T).Name}", typeof(T).Name);
+            NetworkLogger.Debug("Initializing {typeof(T).Name}", typeof(T).Name);
             await InitializeAsync();
-            NetworkLogger.Debug(CHANNEL.Default, "Done initializing {typeof(T).Name}", typeof(T).Name);
+            NetworkLogger.Debug("Done initializing {typeof(T).Name}", typeof(T).Name);
 
             _isInitialized = true;
         }
 
         public async Awaitable ShutDown()
         {
-            NetworkLogger.Debug(CHANNEL.Default, "Shutting down {typeof(T).Name}", typeof(T).Name);
+            NetworkLogger.Debug("Shutting down {typeof(T).Name}", typeof(T).Name);
             await ShutdownAsync();
-            NetworkLogger.Debug(CHANNEL.Default, "Done shutting down {typeof(T).Name}", typeof(T).Name);
+            NetworkLogger.Debug("Done shutting down {typeof(T).Name}", typeof(T).Name);
         }
 
         protected virtual Awaitable InitializeAsync()

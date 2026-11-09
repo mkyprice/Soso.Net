@@ -8,7 +8,7 @@ namespace Soso.Net.Models.Packets
 	{
 		public bool SyncTime { get; set; }
 		public DESTINATION Destination { get; set; }
-		public double Time { get; set; }
+		public long Time { get; set; }
 		public NetworkInstanceId SourceInstance { get; set; }
 		public SOSO_SEND_TYPE SendType;
 		public ushort Channel;
@@ -32,7 +32,7 @@ namespace Soso.Net.Models.Packets
 				value.SyncTime = reader.ReadBool();
 				value.Destination = (DESTINATION)reader.ReadByte();
 				value.SendType = (SOSO_SEND_TYPE)reader.ReadByte();
-				value.Time = reader.ReadDouble();
+				value.Time = reader.ReadLong();
 				value.SourceInstance = (NetworkInstanceId)reader.ReadULong();
 				reader.Read(out value.Channel);
 				value.Data = SosoSerializer.Deserialize(ref reader, config);

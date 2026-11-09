@@ -47,7 +47,7 @@ namespace Soso.Net
 
 			if (client == null)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not create type {nameof(T)}", nameof(T));
+				NetworkLogger.Error("Could not create type {nameof(T)}", nameof(T));
 				return null;
 			}
 
@@ -69,7 +69,7 @@ namespace Soso.Net
 			
 			if (server == null)
 			{
-				NetworkLogger.Error(NetworkLogger.CHANNEL.Default, "Could not create type {nameof(T)}", nameof(T));
+				NetworkLogger.Error("Could not create type {nameof(T)}", nameof(T));
 				return null;
 			}
 			

@@ -2,7 +2,6 @@ using System;
 using Soso.Net.Serializers;
 using Soso.Serialization;
 using Soso.Serialization.Binary;
-using Soso.Serialization.Serializers;
 using UnityEngine;
 
 namespace Soso.Net.Models.Packets
@@ -16,7 +15,7 @@ namespace Soso.Net.Models.Packets
 			get => NetworkInstanceId.Spawner;
 			set { }
 		}
-		public double Time { get; set; }
+		public long Time { get; set; }
 		public bool SyncTime { get; set; }
 		public int SpawnType;
 		public NetworkInstanceId Id;

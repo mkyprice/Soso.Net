@@ -2,7 +2,6 @@ using System;
 using Soso.Net.Serializers;
 using Soso.Serialization;
 using Soso.Serialization.Binary;
-using Soso.Serialization.Serializers;
 
 namespace Soso.Net.Models.Packets
 {
@@ -10,7 +9,7 @@ namespace Soso.Net.Models.Packets
 	public struct NetworkPacket
 	{
 		public ushort SourceId;
-		public double SendTime;
+		public long SendTime;
 		public INetworkMessage[] Messages;
 		
 		

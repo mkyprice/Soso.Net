@@ -3,9 +3,9 @@ using System.Collections.Concurrent;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using Soso.Net.Models.Packets;
+using Soso.Net.Utils;
 using Soso.Utils;
 using UnityEngine;
-using CHANNEL = Soso.Net.Logging.NetworkLogger.CHANNEL;
 
 namespace Soso.Net
 {
@@ -15,7 +15,7 @@ namespace Soso.Net
         public Action<SessionInfo> OnUserConnected;
         public Action<SessionInfo> OnUserDisconnected;
         
-        private ushort _nextSessionId = 1;
+        private ushort _nextSessionId = SessionInfo.SERVER_SESSION_ID;
         private object _sessionIdLock = new object();
         private ConcurrentDictionary<ulong, SessionInfo> _sessionMap = new ConcurrentDictionary<ulong, SessionInfo>();
 
@@ -47,12 +47,12 @@ namespace Soso.Net
             {
                 if (--waitAttempts <= 0)
                 {
-                    NetworkLogger.Error(CHANNEL.Default, "Failed to negotiate session");
+                    NetworkLogger.Error("Failed to negotiate session");
                     return false;
                 }
                 await Awaitable.WaitForSecondsAsync(0.5f);
                 
-                NetworkLogger.Info(CHANNEL.Default, "Waiting for session...");
+                NetworkLogger.Info("Waiting for session...");
             }
 
             return true;
@@ -69,7 +69,7 @@ namespace Soso.Net
             lock (_sessionIdLock)
             {
                 _sessionMap.Clear();
-                _nextSessionId = 1;
+                _nextSessionId = SessionInfo.SERVER_SESSION_ID; // IMPORTANT! Server ID IS 1
             }
         }
         
@@ -128,6 +128,7 @@ namespace Soso.Net
             }
         }
 
+        private MessageSerializer _serializer = new MessageSerializer();
         private void OnServerIdNegotiation(SessionNegotiation negotiation, long arg2, long arg3, IUserConnection connection)
         {
             var client = BuildClient(connection.Id);
@@ -137,7 +138,8 @@ namespace Soso.Net
                 Session = client,
                 ExistingUsers = _sessionMap.Values.ToArray(),
             };
-            connection.Send(returnNegotiation, 0, SOSO_SEND_TYPE.Reliable);
+            int length = _serializer.Write(returnNegotiation, 0);
+            connection.Send(_serializer.SendBuffer, 0, length, SOSO_SEND_TYPE.Reliable);
             
             INetworkManager.GetInstance().Broadcast(client, 0, SOSO_SEND_TYPE.Reliable);
         }
@@ -161,8 +163,8 @@ namespace Soso.Net
             ushort nextId;
             lock (_sessionIdLock)
             {
-                nextId = _nextSessionId;
                 _nextSessionId++;
+                nextId = _nextSessionId;
             }
 
             var client = new SessionInfo()
