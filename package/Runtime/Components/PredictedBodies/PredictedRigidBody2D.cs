@@ -19,10 +19,11 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(0.0001f, 1f)] public float RotationSensitivity = 0.05f;
         [SerializeField, Range(0.0001f, 1f)] public float LinearVelocitySensitivity = 0.05f;
         [SerializeField, Range(0.0001f, 1f)] public float AngularVelocitySensitivity = 0.05f;
+        [SerializeField, Min(0)] public float TeleportThreshold = 2f;
         [SerializeField, Range(0, 1f)] public float RestThreshold = 0.1f;
         [SerializeField, Range(0.5f, 1f)] public float MoveCoefficient = 0.5f;
         [SerializeField, Min(2)] public int HistoryLimit = 32;
-        [SerializeField, Range(20, 200)] public long RecordingIntervalMs = 50;
+        [SerializeField, Range(0, 200)] public long RecordingIntervalMs = 20;
         [SerializeField] public bool OnlySyncOnChange = false;
         [SerializeField, Range(20, 5000)] public long SendIntervalMs = 500;
         [SerializeField, Range(0, 60)] public long MinSendIntervalMs = 20;
@@ -189,7 +190,7 @@ namespace Soso.Net.Components.PredictedBodies
             if (_history.Count < 2)
             {
                 ApplyState(state);
-                RecordState(time);
+                ResetHistoryToState(state, time);
                 return;
             }
 
@@ -209,6 +210,16 @@ namespace Soso.Net.Components.PredictedBodies
                 return;
             }
 
+            if (SyncHelpers.HasChanged(state.Position, interpolated.Position, TeleportThreshold))
+            {
+                // Something has gone wrong, and we are far from where we should be
+                // Teleport and clear history
+                ApplyState(state);
+                ResetHistoryToState(state, time);
+                NetworkLogger.Debug("Teleported {name}", name);
+                return;
+            }
+
             // Unrecorded physics movement between the last recorded history and now
             var latestRecorded = _history.Values[_history.Count - 1];
             Vector2 unrecordedMove = Rb.position - latestRecorded.Position;
@@ -224,15 +235,10 @@ namespace Soso.Net.Components.PredictedBodies
 
             ApplyState(correction);
 
-            // Anchor the latest history entry to the post-correction state
-            int lastIdx = _history.Count - 1;
-            long lastKey = _history.Keys[lastIdx];
-            var anchored = _history.Values[lastIdx];
-            anchored.Position = Rb.position;
-            anchored.Rotation = Rb.rotation;
-            anchored.LinearVelocity = Rb.linearVelocity;
-            anchored.AngularVelocity = Rb.angularVelocity;
-            _history[lastKey] = anchored;
+            // Apply the correction to history
+            long lastKey = _history.Keys[_history.Count - 1];
+            correction.Timestamp = lastKey;
+            _history[lastKey] = correction;
         }
 
         private RigidBody2DState CorrectHistory(RigidBody2DState authorityState, RigidBody2DState predictedAtAuthTime, int toIndex)
@@ -248,7 +254,7 @@ namespace Soso.Net.Components.PredictedBodies
 
             // Shift history by error
             RigidBody2DState latest = authorityState;
-            for (int i = toIndex; i < _history.Count; i++)
+            for (int i = 0; i < _history.Count; i++)
             {
                 long key = _history.Keys[i];
                 var s = _history.Values[i];
@@ -267,6 +273,16 @@ namespace Soso.Net.Components.PredictedBodies
             }
 
             return latest;
+        }
+
+        private void ResetHistoryToState(RigidBody2DState state, long time)
+        {
+            _history.Clear();
+            if (state.Timestamp < time)
+            {
+                _history[state.Timestamp] = state;
+            }
+            RecordState(time);
         }
 
         private void ApplyState(RigidBody2DState state)

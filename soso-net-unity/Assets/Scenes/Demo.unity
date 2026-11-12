@@ -197,7 +197,8 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  RestThreshold: 1
+  RestThreshold: 0.1
+  MoveCoefficient: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -314,7 +315,8 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  RestThreshold: 10
+  RestThreshold: 0.1
+  MoveCoefficient: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -1390,7 +1392,8 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  RestThreshold: 1
+  RestThreshold: 0.1
+  MoveCoefficient: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -1975,7 +1978,8 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  RestThreshold: 10
+  RestThreshold: 0.1
+  MoveCoefficient: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -2092,7 +2096,8 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  RestThreshold: 1
+  RestThreshold: 0.1
+  MoveCoefficient: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -2351,7 +2356,8 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  RestThreshold: 1
+  RestThreshold: 0.1
+  MoveCoefficient: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -3946,7 +3952,8 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  RestThreshold: 10
+  RestThreshold: 0.1
+  MoveCoefficient: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -4417,7 +4424,8 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  RestThreshold: 1
+  RestThreshold: 0.1
+  MoveCoefficient: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
