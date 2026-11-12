@@ -1,4 +1,5 @@
 ﻿using System;
+using Soso.Net.Extensions;
 using Soso.Serialization;
 using Soso.Serialization.Binary;
 using Soso.Serialization.Serializers;
@@ -39,30 +40,17 @@ namespace Soso.Net.Components.NetworkedBodies.Packets
                 
                 if ((value.Modified & MODIFIED.Position) > 0)
                 {
-                    value.Position = new Vector3(
-                        reader.ReadFloat(), 
-                        reader.ReadFloat(), 
-                        reader.ReadFloat()
-                        );
+                    reader.Read(out value.Position);
                 }
 
                 if ((value.Modified & MODIFIED.Rotation) > 0)
                 {
-                    value.Rotation = new Quaternion(
-                        reader.ReadFloat(), 
-                        reader.ReadFloat(), 
-                        reader.ReadFloat(), 
-                        reader.ReadFloat()
-                        );
+                    reader.Read(out value.Rotation);
                 }
 
                 if ((value.Modified & MODIFIED.Scale) > 0)
                 {
-                    value.Scale = new Vector3(
-                        reader.ReadFloat(), 
-                        reader.ReadFloat(), 
-                        reader.ReadFloat()
-                        );
+                    reader.Read(out value.Scale);
                 }
                 return value;
             }
@@ -75,35 +63,18 @@ namespace Soso.Net.Components.NetworkedBodies.Packets
                 
                 if ((value.Modified & MODIFIED.Position) > 0)
                 {
-                    writer.Write(value.Position.x);
-                    writer.Write(value.Position.y);
-                    writer.Write(value.Position.z);
+                    writer.Write(value.Position);
                 }
 
                 if ((value.Modified & MODIFIED.Rotation) > 0)
                 {
-                    writer.Write(value.Rotation.x);
-                    writer.Write(value.Rotation.y);
-                    writer.Write(value.Rotation.z);
-                    writer.Write(value.Rotation.w);
+                    writer.Write(value.Rotation);
                 }
 
                 if ((value.Modified & MODIFIED.Scale) > 0)
                 {
-                    writer.Write(value.Scale.x);
-                    writer.Write(value.Scale.y);
-                    writer.Write(value.Scale.z);
+                    writer.Write(value.Scale);
                 }
-            }
-            
-            public void Serialize(ref ByteWriter writer, object value, SerializationConfig config)
-            {
-                Serialize(ref writer, (SyncTransform)value, config);
-            }
-
-            object ISerializer.Deserialize(ref ByteReader reader, SerializationConfig config)
-            {
-                return Deserialize(ref reader, config);
             }
         }
     }

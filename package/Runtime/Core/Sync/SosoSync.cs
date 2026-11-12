@@ -93,7 +93,7 @@ namespace Soso.Net.Core.Sync
 
         private bool SetInternal(T value, long time)
         {
-            if (time <= _lastSync)
+            if (time < _lastSync)
             {
                 NetworkLogger.Warn("Counter was behind on {name}. Current: {c} given: {cn}", _name, _lastSync, time);
                 return false;

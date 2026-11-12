@@ -19,12 +19,14 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(0.0001f, 1f)] public float RotationSensitivity = 0.05f;
         [SerializeField, Range(0.0001f, 1f)] public float LinearVelocitySensitivity = 0.05f;
         [SerializeField, Range(0.0001f, 1f)] public float AngularVelocitySensitivity = 0.05f;
-        [SerializeField] public float TeleportThresholdSqr = 5;
+        [SerializeField, Min(0)] public float TeleportThreshold = 2f;
+        [SerializeField, Range(0, 1f)] public float RestThreshold = 0.1f;
+        [SerializeField, Range(0.5f, 1f)] public float MoveCoefficient = 0.5f;
         [SerializeField, Min(2)] public int HistoryLimit = 32;
-        [SerializeField, Range(20, 200)] public long RecordingIntervalMs = 50;
+        [SerializeField, Range(0, 200)] public long RecordingIntervalMs = 20;
         [SerializeField] public bool OnlySyncOnChange = false;
         [SerializeField, Range(20, 5000)] public long SendIntervalMs = 500;
-        [SerializeField, Range(0, 50)] public long MinSendIntervalMs = 33;
+        [SerializeField, Range(0, 60)] public long MinSendIntervalMs = 20;
         [SerializeField] public bool AllowAuthoritySwap = false;
         [SerializeField, Range(0, 1000)] public long AuthorityDropDelayMs = 200;
         [SerializeField, Range(100, 5000)] public long AuthorityHeartbeatMs = 1000;
@@ -36,7 +38,9 @@ namespace Soso.Net.Components.PredictedBodies
         private Dictionary<ushort, long> _collisions = new Dictionary<ushort, long>();
         private SortedList<long, RigidBody2DState> _history = new SortedList<long, RigidBody2DState>();
         private RigidBody2DState _lastSentState;
-        private SosoConcurrentSortedQueue<long, RigidBody2DState> _receivedStates = new SosoConcurrentSortedQueue<long, RigidBody2DState>();
+        private RigidBody2DState? _pendingHandoffState = null;
+        private long _latestProcessedReceiveState;
+        private SosoConcurrentQueue<RigidBody2DState> _receivedStates = new SosoConcurrentQueue<RigidBody2DState>();
         private long _lastSendTime;
         private long _lastRecordTime;
         
@@ -55,10 +59,38 @@ namespace Soso.Net.Components.PredictedBodies
             }
         }
 
-        private void OnDisable()
+        public override void OnSpawn()
         {
-            _pendingAuthGiveUp = false;
-            _localContactCount = 0;
+            base.OnSpawn();
+            
+            ResetInstance();
+        }
+
+        public override void OnDespawn()
+        {
+            base.OnDespawn();
+            
+            ResetInstance();
+        }
+
+        private void LateUpdate()
+        {
+            if (IsInitialized == false)
+            {
+                return;
+            }
+            var time = NetworkTime.Time;
+            bool isAuthority = NetId.IsAuthority();
+            
+            if (isAuthority)
+            {
+                var state = BuildState(time);
+                if ((OnlySyncOnChange == false && IsSendReady()) || (IsMinSendReady() && HasChanged(state, _lastSentState)))
+                {
+                    _lastSendTime = time;
+                    SendUpdate(state);
+                }
+            }
         }
 
         private void FixedUpdate()
@@ -67,27 +99,42 @@ namespace Soso.Net.Components.PredictedBodies
             {
                 return;
             }
-            
-            if (IsAuthority() == false)
-            {
-                while (_receivedStates.TryDequeueFirst(out var receivedState))
-                {
-                    ReceiveState(receivedState);
-                }
-            }
+            var time = NetworkTime.Time;
+            bool isAuthority = NetId.IsAuthority();
             
             if (IsRecordReady() || _history.Count < 2)
             {
-                RecordState();
+                RecordState(time);
             }
 
-            var time = NetworkTime.Time;
+            if (_pendingHandoffState.HasValue)
+            {
+                ReceiveState(_pendingHandoffState.Value, time);
+                _pendingHandoffState = null;
+            }
+            else if (isAuthority == false)
+            {
+                RigidBody2DState? latestState = null;
+                while (_receivedStates.TryDequeue(out var receivedState))
+                {
+                    if (receivedState.Timestamp > _latestProcessedReceiveState)
+                    {
+                        _latestProcessedReceiveState = receivedState.Timestamp;
+                        latestState = receivedState;
+                    }
+                }
+                if (latestState.HasValue)
+                {
+                    ReceiveState(latestState.Value, time);
+                }
+            }
+
             if (_pendingAuthGiveUp && time >= _contactExitTime + AuthorityDropDelayMs)
             {
                 _pendingAuthGiveUp = false;
                 Rpc(RpcRequestGiveUpOwnership, _pendingGiveUpOwnerId, BuildState(time));
             }
-            if (IsAuthority() && _localContactCount > 0 && time >= _lastAuthHeartbeatTime + AuthorityHeartbeatMs)
+            if (isAuthority && _localContactCount > 0 && time >= _lastAuthHeartbeatTime + AuthorityHeartbeatMs)
             {
                 _lastAuthHeartbeatTime = time;
                 Rpc(RpcRequestOwnership, INetworkManager.SessionId);
@@ -100,19 +147,17 @@ namespace Soso.Net.Components.PredictedBodies
             }
         }
 
-        private void LateUpdate()
+        private void ResetInstance()
         {
-            if (NetId == null) return;
-            if (NetId.IsAuthority())
-            {
-                var time = NetworkTime.Time;
-                var state = BuildState(time);
-                if ((OnlySyncOnChange == false && IsSendReady()) || (IsMinSendReady() && HasChanged(state, _lastSentState)))
-                {
-                    _lastSendTime = time;
-                    SendUpdate(state);
-                }
-            }
+            _pendingAuthGiveUp = false;
+            _lastSendTime = 0;
+            _lastRecordTime = 0;
+            _localContactCount = 0;
+            _latestProcessedReceiveState = 0;
+            _pendingHandoffState = null;
+            _receivedStates.Clear();
+            _history.Clear();
+            _collisions.Clear();
         }
 
         private bool IsRecordReady()
@@ -133,11 +178,24 @@ namespace Soso.Net.Components.PredictedBodies
             return _lastSendTime + MinSendIntervalMs <= time;
         }
 
-        private void ReceiveState(RigidBody2DState state)
+        private void ReceiveState(RigidBody2DState state, long time)
         {
+            if (state.LinearVelocity.sqrMagnitude <= RestThreshold * RestThreshold
+                && Mathf.Abs(state.AngularVelocity) <= RestThreshold)
+            {
+                state.LinearVelocity = Vector2.zero;
+                state.AngularVelocity = 0f;
+            }
+
             if (_history.Count < 2)
             {
                 ApplyState(state);
+                ResetHistoryToState(state, time);
+                return;
+            }
+
+            if (state.Timestamp < _history.Keys[0])
+            {
                 return;
             }
             
@@ -145,101 +203,98 @@ namespace Soso.Net.Components.PredictedBodies
             var fromState = _history.Values[from];
             var toState = _history.Values[to];
             var interpolated = fromState.Interpolate(toState, (float)t);
-            if (HasChanged(state, interpolated))
+
+            // We are groovy, no need for any corrections
+            if (HasChanged(state, interpolated) == false)
             {
-                var time = NetworkTime.Time;
-                var latestRecorded = _history.Values[_history.Count - 1];
-                var correction = CorrectHistory(state, fromState, toState, to);
-                
-                long correctedTime = Math.Max(state.Timestamp, _lastRecordTime);
-                long subIntervalMs = time - correctedTime;
-                
-                // Correct the subinterval (because we don't record every frame)
-                if (subIntervalMs > 0)
-                {
-                    float dt = subIntervalMs * 0.001f; // To seconds
-                    Vector2 unrecordedMove = Rb.position - latestRecorded.Position;
-                    Vector2 velocityError = correction.Velocity - latestRecorded.Velocity;
-                    correction.Position += unrecordedMove + (velocityError * dt);
-                    correction.Rotation += (Rb.rotation - latestRecorded.Rotation) 
-                                           + ((correction.AngularVelocity - latestRecorded.AngularVelocity) * dt);
-                }
-                
-                ApplyState(correction);
+                return;
             }
+
+            if (SyncHelpers.HasChanged(state.Position, interpolated.Position, TeleportThreshold))
+            {
+                // Something has gone wrong, and we are far from where we should be
+                // Teleport and clear history
+                ApplyState(state);
+                ResetHistoryToState(state, time);
+                NetworkLogger.Debug("Teleported {name}", name);
+                return;
+            }
+
+            // Unrecorded physics movement between the last recorded history and now
+            var latestRecorded = _history.Values[_history.Count - 1];
+            Vector2 unrecordedMove = Rb.position - latestRecorded.Position;
+            float unrecordedRot = Mathf.DeltaAngle(latestRecorded.Rotation, Rb.rotation);
+
+            // Correct recorded history from to up to _lastRecordTime
+            var correction = CorrectHistory(state, interpolated);
+            if (state.Timestamp < _lastRecordTime)
+            {
+                correction.Position += unrecordedMove;
+                correction.Rotation += unrecordedRot;
+            }
+
+            ApplyState(correction);
+
+            // Apply the correction to history
+            long lastKey = _history.Keys[_history.Count - 1];
+            correction.Timestamp = lastKey;
+            _history[lastKey] = correction;
         }
 
-        private RigidBody2DState CorrectHistory(RigidBody2DState corrected, RigidBody2DState from, RigidBody2DState to, int toIndex)
+        private RigidBody2DState CorrectHistory(RigidBody2DState authorityState, RigidBody2DState predictedAtAuthTime)
         {
-            long prevDt = to.Timestamp - from.Timestamp;
-            long correctDt = to.Timestamp - corrected.Timestamp;
+            bool isAtRest = authorityState.LinearVelocity == Vector2.zero && authorityState.AngularVelocity == 0f;
+            float moveScale = isAtRest ? 1f : MoveCoefficient;
 
-            // Corrected is newer
-            if (correctDt <= 0)
+            // Compute the error at time
+            Vector2 posError = (authorityState.Position - predictedAtAuthTime.Position) * moveScale;
+            float rotError = Mathf.DeltaAngle(predictedAtAuthTime.Rotation, authorityState.Rotation) * moveScale;
+            Vector2 velError = (authorityState.LinearVelocity - predictedAtAuthTime.LinearVelocity) * moveScale;
+            float angVelError = (authorityState.AngularVelocity - predictedAtAuthTime.AngularVelocity) * moveScale;
+
+            // Shift history by error
+            RigidBody2DState latest = authorityState;
+            for (int i = 0; i < _history.Count; i++)
             {
-                _history[corrected.Timestamp] = corrected;
-                return corrected;
+                long key = _history.Keys[i];
+                var s = _history.Values[i];
+                s.Position += posError;
+                s.Rotation += rotError;
+                s.LinearVelocity += velError;
+                s.AngularVelocity += angVelError;
+                _history[key] = s;
+                latest = s;
             }
 
-            float multiplier = prevDt != 0 ? Mathf.Clamp01((float)correctDt / prevDt) : 0;
-            var currentCorrection = corrected;
-            var prevUncorrectedState = from;
-            for (int i = toIndex; i < _history.Count; i++)
+            if (authorityState.LinearVelocity == Vector2.zero && authorityState.AngularVelocity == 0f)
             {
-                long time = _history.Keys[i];
-                var uncorrectedState = _history.Values[i];
-                var state = uncorrectedState;
-
-                float stepScale = (i == toIndex) ? multiplier : 1f;
-                // Need the correct time diff
-                long stepMs = (i == toIndex) ? correctDt : (time - prevUncorrectedState.Timestamp);
-                float stepDt = Mathf.Max(0f, stepMs * 0.001f); // Dt in secs
-
-                Vector2 velDelta = currentCorrection.Velocity - prevUncorrectedState.Velocity;
-                float angVelDelta = currentCorrection.AngularVelocity - prevUncorrectedState.AngularVelocity;
-                
-                Vector2 posStep = (state.PositionDelta * stepScale) + (velDelta * stepDt);
-                float rotStep = (state.RotationDelta * stepScale) + (angVelDelta * stepDt);
-                Vector2 velStep = state.VelocityDelta * stepScale;
-                float angVelStep = state.AngularVelocityDelta * stepScale;
-
-                state.Position = currentCorrection.Position + posStep;
-                state.Rotation = currentCorrection.Rotation + rotStep;
-                state.Velocity = currentCorrection.Velocity + velStep;
-                state.AngularVelocity = currentCorrection.AngularVelocity + angVelStep;
-                state.PositionDelta = state.Position - currentCorrection.Position;
-                state.RotationDelta = state.Rotation - currentCorrection.Rotation;
-                state.VelocityDelta = state.Velocity - currentCorrection.Velocity;
-                state.AngularVelocityDelta = state.AngularVelocity - currentCorrection.AngularVelocity;
-
-                prevUncorrectedState = uncorrectedState;
-                _history[time] = state;
-                currentCorrection = state;
+                latest.LinearVelocity = Vector2.zero;
+                latest.AngularVelocity = 0f;
             }
-            return currentCorrection;
+
+            return latest;
+        }
+
+        private void ResetHistoryToState(RigidBody2DState state, long time)
+        {
+            _history.Clear();
+            if (state.Timestamp < time)
+            {
+                _history[state.Timestamp] = state;
+            }
+            RecordState(time);
         }
 
         private void ApplyState(RigidBody2DState state)
         {
-            bool shouldTeleport = (state.Position - Rb.position).sqrMagnitude >= TeleportThresholdSqr;
             Rb.position = state.Position;
             Rb.rotation = state.Rotation;
-            if (shouldTeleport)
-            {
-                Rb.linearVelocity = Vector2.zero;
-                Rb.angularVelocity = 0;
-            }
-            else
-            {
-                Rb.linearVelocity = state.Velocity;
-                Rb.angularVelocity = state.AngularVelocity;
-            }
-            // Physics2D.SyncTransforms();
+            Rb.linearVelocity = state.LinearVelocity;
+            Rb.angularVelocity = state.AngularVelocity;
         }
 
-        private void RecordState()
+        private void RecordState(long time)
         {
-            var time = NetworkTime.Time;
             _lastRecordTime = time;
             var state = BuildState(time);
             _history[state.Timestamp] = state;
@@ -282,17 +337,14 @@ namespace Soso.Net.Components.PredictedBodies
             {
                 return;
             }
-            long time = NetworkTime.ToLocalTime(NetId.AuthorityId, state.Timestamp);
-            state.Timestamp = time;
-
-            _receivedStates.Add(time, state);
+            _receivedStates.EnqueueBack(state);
         }
 
         private bool HasChanged(RigidBody2DState state, RigidBody2DState lastState)
         {
             return SyncHelpers.HasChanged(state.Position, lastState.Position, PositionSensitivity) ||
                    SyncHelpers.HasChanged(state.Rotation, lastState.Rotation, RotationSensitivity) ||
-                   SyncHelpers.HasChanged(state.Velocity, lastState.Velocity, LinearVelocitySensitivity) ||
+                   SyncHelpers.HasChanged(state.LinearVelocity, lastState.LinearVelocity, LinearVelocitySensitivity) ||
                    SyncHelpers.HasChanged(state.AngularVelocity, lastState.AngularVelocity, AngularVelocitySensitivity);
         }
 
@@ -302,37 +354,17 @@ namespace Soso.Net.Components.PredictedBodies
             var rotation = Rb.rotation;
             var linearVel = Rb.linearVelocity;
             var angularVel = Rb.angularVelocity;
-            var positionDelta = Vector2.zero;
-            var rotationDelta = 0f;
-            var linearVelocityDelta = Vector2.zero;
-            var angularVelocityDelta = 0f;
-
-            if (_history.Count > 0)
-            {
-                var lastState = _history.Values[_history.Count - 1];
-                positionDelta = position - lastState.Position;
-                rotationDelta = rotation - lastState.Rotation;
-                linearVelocityDelta = linearVel - lastState.Velocity;
-                angularVelocityDelta = angularVel - lastState.AngularVelocity;
-            }
             
             return new RigidBody2DState(
                 timestamp,
                 position,
-                positionDelta,
                 rotation,
-                rotationDelta,
                 linearVel,
-                linearVelocityDelta,
-                angularVel,
-                angularVelocityDelta
+                angularVel
             );
         }
 
         #region Authority Transfer
-
-        
-
         
         private void OnTriggerEnter2D(Collider2D other) 
             => HandleBodyEntered(other.attachedRigidbody);
@@ -384,6 +416,14 @@ namespace Soso.Net.Components.PredictedBodies
             }
         }
 
+        public override void OnAuthorityTransferred(ushort prevAuthority, ushort newAuthority)
+        {
+            base.OnAuthorityTransferred(prevAuthority, newAuthority);
+            
+            _receivedStates.Clear();
+            _latestProcessedReceiveState = 0;
+        }
+
         [SosoRpc(RPC_CALL_TYPE.Server, false, true)]
         private void RpcRequestGiveUpOwnership(ushort ownerId, RigidBody2DState state)
         {
@@ -394,9 +434,7 @@ namespace Soso.Net.Components.PredictedBodies
             // Always apply outgoing authority's state
             if (NetId.AuthorityId == ownerId && IsAuthority() == false)
             {
-                long time = NetworkTime.ToLocalTime(ownerId, state.Timestamp);
-                state.Timestamp = time;
-                ReceiveState(state);
+                _pendingHandoffState = state;
             }
             
             ServerEvaluateAuthority();

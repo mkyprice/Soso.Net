@@ -186,19 +186,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e5a1d2324bd4acba83c34dcf490624b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: SosoNetworking::Soso.Net.Behaviors.NetworkIdentity
-  Instance:
+  _instance:
     _id:
       Id: 0
     _remoteInfo:
       SessionId: 0
+      ConnectionId: 0
       RemoteTime: 0
-      TimeDifference: 0
       LastPingTime: 0
-      Ping: 0
+      PingMs: 0
   IsServerAuthority: 0
   IsClientAuthority: 1
   BakedId:
     Id: 0
+  _isAuthority: 0
+  _authorityOverrideDebug: 0
 --- !u!114 &6230876625253416423
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -213,22 +215,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: SosoNetworking::Soso.Net.Components.NetworkedBodies.NetworkedRigidBody2D
   Target: {fileID: 0}
   OnlySyncOnChange: 1
+  Reliable: 0
   PositionSensitivity: 0.05
   RotationSensitivity: 0.05
   ScaleSensitivity: 0.05
-  SyncMethod: 0
+  SyncMethod: 1
   SyncPosition: 1
   SyncRotation: 1
   SyncScale: 1
-  SyncInterval: 0.05
+  SyncIntervalMs: 33
   InterpolatePosition: 1
   InterpolateRotation: 1
   InterpolateScale: 1
   SnapshotBufferLimit: 64
   SyncLinearVelocity: 1
   SyncAngularVelocity: 1
-  LinearVelocitySensitivity: 0
-  AngularVelocitySensitivity: 0
+  LinearVelocitySensitivity: 0.05
+  AngularVelocitySensitivity: 0.05
+  RestThreshold: 0.01
   Rb: {fileID: 116973336964311419}
 --- !u!50 &116973336964311419
 Rigidbody2D:

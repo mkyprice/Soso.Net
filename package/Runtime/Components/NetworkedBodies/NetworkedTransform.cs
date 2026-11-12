@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using Soso.Net.Behaviors;
 using Soso.Net.Behaviors.Rpc;
 using Soso.Net.Components.NetworkedBodies.Helpers;
 using Soso.Net.Components.NetworkedBodies.Packets;
 using Soso.Net.Components.NetworkedBodies.Snapshots;
+using Soso.Net.Logging;
 using Soso.Net.Models;
 using UnityEngine;
 
@@ -26,7 +28,7 @@ namespace Soso.Net.Components.NetworkedBodies
         [SerializeField] public bool SyncRotation = true;
         [SerializeField] public bool SyncScale = true;
     
-        [SerializeField, Range(0, 100)] public long SyncIntervalMs = 25;
+        [SerializeField, Range(0, 100)] public long SyncIntervalMs = 33;
     
         [Header("Interpolation")]
         [SerializeField] public bool InterpolatePosition = true;
@@ -42,8 +44,14 @@ namespace Soso.Net.Components.NetworkedBodies
         protected readonly SortedList<long, TransformSnapshot> ClientSnapshots = new SortedList<long, TransformSnapshot>(SNAPSHOT_CAPACITY);
     
         protected TransformSnapshot LastSentSnapshot;
-        protected TransformSnapshot? PendingSnapshot;
         private long _lastSendTime = 0;
+        private bool _hasSyncedRestState = false;
+
+#if UNITY_EDITOR
+        protected virtual void OnValidate()
+        {
+        }
+#endif
 
         protected virtual void Awake()
         {
@@ -61,20 +69,23 @@ namespace Soso.Net.Components.NetworkedBodies
 
         protected virtual void FixedUpdate()
         {
-            if (SyncMethod == SYNC_METHOD.FixedUpdate)
+            if (SyncMethod == SYNC_METHOD.FixedUpdate && IsOwned == false)
             {
                 PerformUpdate();
-            }
-            if (PendingSnapshot.HasValue && IsOwned == false && SyncMethod == SYNC_METHOD.FixedUpdate)
-            {
-                Apply(PendingSnapshot.Value, PendingSnapshot.Value);
-                PendingSnapshot = null;
             }
         }
 
         protected virtual void LateUpdate()
         {
-            if (SyncMethod == SYNC_METHOD.Update)
+            if (IsOwned)
+            {
+                if (IsSendReady())
+                {
+                    ReadyToSync();
+                }
+            }
+
+            if (SyncMethod == SYNC_METHOD.Update && IsOwned == false)
             {
                 PerformUpdate();
             }
@@ -84,33 +95,20 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             if (IsOwned)
             {
-                if (IsSendReady())
-                {
-                    ReadyToSync();
-                }
+                return;
             }
-            else
+            if (ClientSnapshots.Count > 0)
             {
-                if (ClientSnapshots.Count > 0)
-                {
-                    SnapshotInterpolation.StepInterpolation(
-                        ClientSnapshots, 
-                        NetworkTime.Time, 
-                        out var from, 
-                        out var to, 
-                        out var t
-                    );
-                    var computed = TransformSnapshot.Interpolate(from, to, (float)t, InterpolatePosition, InterpolateRotation, InterpolateScale);
+                SnapshotInterpolation.StepInterpolation(
+                    ClientSnapshots, 
+                    NetworkTime.Time, 
+                    out var from, 
+                    out var to, 
+                    out var t
+                );
+                var computed = TransformSnapshot.Interpolate(from, to, (float)t, InterpolatePosition, InterpolateRotation, InterpolateScale);
 
-                    if (SyncMethod == SYNC_METHOD.FixedUpdate)
-                    {
-                        PendingSnapshot = computed;
-                    }
-                    else
-                    {
-                        Apply(computed, to);
-                    }
-                }
+                Apply(computed, to);
             }
         }
 
@@ -122,9 +120,9 @@ namespace Soso.Net.Components.NetworkedBodies
             {
                 return;
             }
-            
-            Target.position = position;
-            Target.rotation = rotation;
+
+            SetPosition(position);
+            SetRotation(rotation);
 
             SyncTransform sync = new SyncTransform()
             {
@@ -156,12 +154,10 @@ namespace Soso.Net.Components.NetworkedBodies
             var rotation = (sync.Modified & SyncTransform.MODIFIED.Rotation) != 0 ? sync.Rotation : (Quaternion?)null;
             var scale = (sync.Modified & SyncTransform.MODIFIED.Scale) != 0 ? sync.Scale : (Vector3?)null;
             
-            var localTime = NetworkTime.Time;
-
             long snapshotTime = NetworkTime.ToLocalTime(NetId.AuthorityId, sync.Time);
-            if (OnlySyncOnChange && NeedsCorrection(ClientSnapshots, localTime, snapshotTime))
+            if (OnlySyncOnChange && NeedsCorrection(ClientSnapshots, snapshotTime))
             {
-                RewriteHistory(ClientSnapshots, snapshotTime, Target.position, Target.rotation, Target.localScale);
+                RewriteHistory(ClientSnapshots, snapshotTime, GetPosition(), GetRotation(), GetScale());
             }
             
             AddSnapshot(ClientSnapshots, snapshotTime + SyncIntervalMs, position, rotation, scale);
@@ -172,27 +168,27 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             if ((sync.Modified & SyncTransform.MODIFIED.Position) != 0)
             {
-                Target.position = sync.Position;
+                SetPosition(sync.Position);
             }
 
             if ((sync.Modified & SyncTransform.MODIFIED.Rotation) != 0)
             {
-                Target.rotation = sync.Rotation;
+                SetRotation(sync.Rotation);
             }
 
             if ((sync.Modified & SyncTransform.MODIFIED.Scale) != 0)
             {
-                Target.localScale = sync.Scale;
+                SetScale(sync.Scale);
             }
         
             ResetState();
         }
 
-        protected SyncTransform GetSync(TransformSnapshot snapshot, TransformSnapshot previous)
+        protected SyncTransform GetSync(TransformSnapshot snapshot, TransformSnapshot previous, bool force)
         {
-            bool positionChanged = SyncPosition && (SyncHelpers.HasChanged(previous.Position, snapshot.Position, PositionSensitivity));
-            bool rotationChanged = SyncRotation && (SyncHelpers.HasChanged(previous.Rotation, snapshot.Rotation, RotationSensitivity));
-            bool scaleChanged    = SyncScale && (SyncHelpers.HasChanged(previous.Scale, snapshot.Scale, ScaleSensitivity));
+            bool positionChanged = SyncPosition && (force || SyncHelpers.HasChanged(previous.Position, snapshot.Position, PositionSensitivity));
+            bool rotationChanged = SyncRotation && (force || SyncHelpers.HasChanged(previous.Rotation, snapshot.Rotation, RotationSensitivity));
+            bool scaleChanged    = SyncScale && (force || SyncHelpers.HasChanged(previous.Scale, snapshot.Scale, ScaleSensitivity));
         
             return new SyncTransform()
             {
@@ -217,14 +213,17 @@ namespace Soso.Net.Components.NetworkedBodies
             return localTime - _lastSendTime >= SyncIntervalMs;
         }
         
-        protected virtual void ReadyToSync()
+        private void ReadyToSync()
         {
+            _lastSendTime = NetworkTime.Time;
             var snapshot = BuildSnapshot();
-            if (OnlySyncOnChange == false || HasChanged(LastSentSnapshot, snapshot))
+            bool hasChanged = OnlySyncOnChange == false || HasChanged(LastSentSnapshot, snapshot);
+            bool forceSync = _hasSyncedRestState == false;
+            if (hasChanged || forceSync)
             {
-                _lastSendTime = NetworkTime.Time;
+                _hasSyncedRestState = hasChanged == false;
 
-                var sync = GetSync(snapshot, LastSentSnapshot);
+                var sync = GetSync(snapshot, LastSentSnapshot, forceSync);
                 LastSentSnapshot  = snapshot;
 
                 if (Reliable)
@@ -236,6 +235,11 @@ namespace Soso.Net.Components.NetworkedBodies
                     Rpc(RpcSnapshotUnreliable, sync);
                 }
             }
+            OnReadyToSync(forceSync);
+        }
+
+        protected virtual void OnReadyToSync(bool force)
+        {
         }
     
         public virtual void ResetState()
@@ -254,13 +258,13 @@ namespace Soso.Net.Components.NetworkedBodies
 
         protected void AddSnapshot(SortedList<long, TransformSnapshot> snapshots, long time, Vector3? position, Quaternion? rotation, Vector3? scale)
         {
-            if (position.HasValue == false) position = snapshots.Count > 0 ? snapshots.Values[snapshots.Count - 1].Position : Target.position;
-            if (rotation.HasValue == false) rotation = snapshots.Count > 0 ? snapshots.Values[snapshots.Count - 1].Rotation : Target.rotation;
-            if (scale.HasValue == false)    scale    = snapshots.Count > 0 ? snapshots.Values[snapshots.Count - 1].Scale : Target.localScale;
+            if (position.HasValue == false) position = snapshots.Count > 0 ? snapshots.Values[snapshots.Count - 1].Position : GetPosition();
+            if (rotation.HasValue == false) rotation = snapshots.Count > 0 ? snapshots.Values[snapshots.Count - 1].Rotation : GetRotation();
+            if (scale.HasValue == false)    scale    = snapshots.Count > 0 ? snapshots.Values[snapshots.Count - 1].Scale : GetScale();
 
-            if (snapshots.Count > SnapshotBufferLimit)
+            while (snapshots.Count > SnapshotBufferLimit)
             {
-                return;
+                snapshots.RemoveAt(0);
             }
             
             var snapshot = new TransformSnapshot(time, position.Value, rotation.Value, scale.Value);
@@ -271,25 +275,55 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             snapshots.Clear();
             
-            TransformSnapshot snapshot = new TransformSnapshot(time - SyncIntervalMs, pos, rot, scale);
+            TransformSnapshot snapshot = new TransformSnapshot(time, pos, rot, scale);
             snapshots[snapshot.Timestamp] = snapshot;
         }
 
-        private bool NeedsCorrection(SortedList<long, TransformSnapshot> snapshots, long localTime, long time)
+        private bool NeedsCorrection(SortedList<long, TransformSnapshot> snapshots, long incomingTime)
         {
-            return snapshots.Count == 1 && time - snapshots.Keys[0] >= localTime;
+            return snapshots.Count == 1 && incomingTime - snapshots.Keys[0] >= SyncIntervalMs;
         }
 
         protected virtual void Apply(TransformSnapshot interpolated, TransformSnapshot goal)
         {
-            if (SyncPosition) Target.position = InterpolatePosition ? interpolated.Position : goal.Position;
-            if (SyncRotation) Target.rotation = InterpolateRotation ? interpolated.Rotation : goal.Rotation;
-            if (SyncScale)    Target.localScale = InterpolateScale ? interpolated.Scale : goal.Scale;
+            if (SyncPosition) SetPosition(InterpolatePosition ? interpolated.Position : goal.Position);
+            if (SyncRotation) SetRotation(InterpolateRotation ? interpolated.Rotation : goal.Rotation);
+            if (SyncScale)    SetScale(InterpolateScale ? interpolated.Scale : goal.Scale);
+        }
+
+        protected virtual void SetPosition(Vector3 position)
+        {
+            Target.position = position;
+        }
+
+        protected virtual void SetRotation(Quaternion rotation)
+        {
+            Target.rotation = rotation;
+        }
+
+        protected virtual void SetScale(Vector3 scale)
+        {
+            Target.localScale = scale;
+        }
+
+        protected virtual Vector3 GetPosition()
+        {
+            return Target.position;
+        }
+
+        protected virtual Quaternion GetRotation()
+        {
+            return Target.rotation;
+        }
+
+        protected virtual Vector3 GetScale()
+        {
+            return Target.localScale;
         }
 
         protected virtual TransformSnapshot BuildSnapshot()
         {
-            return new TransformSnapshot(NetworkTime.Time, Target.position, Target.rotation, Target.localScale);
+            return new TransformSnapshot(NetworkTime.Time, GetPosition(), GetRotation(), GetScale());
         }
 
         #endregion
