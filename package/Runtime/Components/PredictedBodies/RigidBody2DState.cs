@@ -13,31 +13,17 @@ namespace Soso.Net.Components.PredictedBodies
     {
         public long Timestamp { get; set; }
         public Vector2 Position;
-        public Vector2 Velocity;
+        public Vector2 LinearVelocity;
         public float Rotation;
         public float AngularVelocity;
-        
-        [NonSerialized] public Vector2 PositionDelta;
-        [NonSerialized] public Vector2 VelocityDelta;
-        [NonSerialized] public float RotationDelta;
-        [NonSerialized] public float AngularVelocityDelta;
 
-        public RigidBody2DState(long timestamp, Vector2 position, float rotation, Vector2 velocity, float angularVelocity)
-            : this(timestamp, position, Vector2.zero, rotation, 0, velocity, Vector2.zero, angularVelocity, 0)
-        {
-        }
-
-        public RigidBody2DState(long timestamp, Vector2 position, Vector2 positionDelta, float rotation, float rotationDelta, Vector2 velocity, Vector2 velocityDelta, float angularVelocity, float angularVelocityDelta)
+        public RigidBody2DState(long timestamp, Vector2 position, float rotation, Vector2 linearVelocity, float angularVelocity)
         {
             Timestamp = timestamp;
             Position = position;
             Rotation = rotation;
-            Velocity = velocity;
+            LinearVelocity = linearVelocity;
             AngularVelocity = angularVelocity;
-            PositionDelta = positionDelta;
-            RotationDelta = rotationDelta;
-            VelocityDelta = velocityDelta;
-            AngularVelocityDelta = angularVelocityDelta;
         }
 
         public RigidBody2DState Interpolate(RigidBody2DState other, float t)
@@ -45,8 +31,8 @@ namespace Soso.Net.Components.PredictedBodies
             return new RigidBody2DState(
                 NetMath.Lerp(Timestamp, other.Timestamp, t),
                 Vector2.Lerp(Position, other.Position, t),
-                Mathf.Lerp(Rotation, other.Rotation, t),
-                Vector2.Lerp(Velocity, other.Velocity, t),
+                Mathf.LerpAngle(Rotation, other.Rotation, t),
+                Vector2.Lerp(LinearVelocity, other.LinearVelocity, t),
                 Mathf.Lerp(AngularVelocity, other.AngularVelocity, t)
             );
         }
@@ -59,7 +45,7 @@ namespace Soso.Net.Components.PredictedBodies
                 value.Timestamp = reader.ReadLong();
                 reader.Read(out value.Position);
                 reader.Read(out value.Rotation);
-                reader.Read(out value.Velocity);
+                reader.Read(out value.LinearVelocity);
                 reader.Read(out value.AngularVelocity);
                 return value;
             }
@@ -69,7 +55,7 @@ namespace Soso.Net.Components.PredictedBodies
                 writer.Write(value.Timestamp);
                 writer.Write(value.Position);
                 writer.Write(value.Rotation);
-                writer.Write(value.Velocity);
+                writer.Write(value.LinearVelocity);
                 writer.Write(value.AngularVelocity);
             }
         }
