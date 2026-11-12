@@ -224,14 +224,14 @@ namespace Soso.Net.Components.NetworkedBodies
             return localTime - _lastSendTime >= SyncIntervalMs;
         }
         
-        protected virtual void ReadyToSync()
+        private void ReadyToSync()
         {
+            _lastSendTime = NetworkTime.Time;
             var snapshot = BuildSnapshot();
             bool hasChanged = OnlySyncOnChange == false || HasChanged(LastSentSnapshot, snapshot);
             bool forceSync = _hasSyncedRestState == false;
             if (hasChanged || forceSync)
             {
-                _lastSendTime = NetworkTime.Time;
                 _hasSyncedRestState = hasChanged == false;
 
                 var sync = GetSync(snapshot, LastSentSnapshot, forceSync);
@@ -246,6 +246,11 @@ namespace Soso.Net.Components.NetworkedBodies
                     Rpc(RpcSnapshotUnreliable, sync);
                 }
             }
+            OnReadyToSync(forceSync);
+        }
+
+        protected virtual void OnReadyToSync(bool force)
+        {
         }
     
         public virtual void ResetState()

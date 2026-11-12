@@ -198,7 +198,6 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   RestThreshold: 10
-  CorrectionEasing: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -316,7 +315,6 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   RestThreshold: 10
-  CorrectionEasing: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -1089,7 +1087,6 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   RestThreshold: 10
-  CorrectionEasing: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -1675,7 +1672,6 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   RestThreshold: 10
-  CorrectionEasing: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -1793,7 +1789,6 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   RestThreshold: 10
-  CorrectionEasing: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -2051,8 +2046,7 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
-  RestThreshold: 10
-  CorrectionEasing: 0.5
+  RestThreshold: 1
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -3648,7 +3642,6 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   RestThreshold: 10
-  CorrectionEasing: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0
@@ -4119,7 +4112,6 @@ MonoBehaviour:
   LinearVelocitySensitivity: 0.05
   AngularVelocitySensitivity: 0.05
   RestThreshold: 10
-  CorrectionEasing: 0.5
   HistoryLimit: 32
   RecordingIntervalMs: 50
   OnlySyncOnChange: 0

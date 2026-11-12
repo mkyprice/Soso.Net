@@ -1,6 +1,7 @@
 ﻿using Soso.Net.Behaviors.Rpc;
 using Soso.Net.Components.NetworkedBodies.Helpers;
 using Soso.Net.Components.NetworkedBodies.Packets;
+using Soso.Net.Components.NetworkedBodies.Snapshots;
 using Soso.Net.Logging;
 using Soso.Net.Models;
 using UnityEngine;
@@ -15,6 +16,8 @@ namespace Soso.Net.Components.NetworkedBodies
         
         [SerializeField, Range(0.0001f, 1f)] public float LinearVelocitySensitivity = 0.1f;
         [SerializeField, Range(0.0001f, 1f)] public float AngularVelocitySensitivity = 0.1f;
+        
+        [SerializeField, Range(0.00001f, 0.1f)] public float RestThreshold = 0.01f;
 
         public Rigidbody2D Rb;
 
@@ -67,11 +70,10 @@ namespace Soso.Net.Components.NetworkedBodies
             }
         }
 
-        protected override void ReadyToSync()
+        protected override void OnReadyToSync(bool force)
         {
-            base.ReadyToSync();
-            
-            SyncRigidBody2D rbSync = BuildSync(_lastSentSync);
+            base.OnReadyToSync(force);
+            SyncRigidBody2D rbSync = BuildSync(_lastSentSync, force);
             if (OnlySyncOnChange == false || rbSync.Modified != SyncRigidBody2D.MODIFIED.None)
             {
                 _lastSentSync = rbSync;
@@ -87,23 +89,23 @@ namespace Soso.Net.Components.NetworkedBodies
             }
         }
 
-        protected SyncRigidBody2D BuildSync(SyncRigidBody2D previous)
+        protected SyncRigidBody2D BuildSync(SyncRigidBody2D previous, bool forceUpdate)
         {
             var lv = Rb.linearVelocity;
-            if (lv.sqrMagnitude <= LinearVelocitySensitivity * LinearVelocitySensitivity)
+            if (lv.sqrMagnitude <= RestThreshold * RestThreshold)
             {
                 lv = Vector2.zero;
             }
             var av = Rb.angularVelocity;
-            if (Mathf.Abs(av) <= AngularVelocitySensitivity)
+            if (Mathf.Abs(av) <= RestThreshold)
             {
                 av = 0;
             }
             bool lvStopped = lv == Vector2.zero && previous.LinearVelocity != Vector2.zero;
             bool avStopped = av == 0 && previous.AngularVelocity != 0;
             
-            bool lvChanged = SyncLinearVelocity && (lvStopped || SyncHelpers.HasChanged(previous.LinearVelocity, lv, LinearVelocitySensitivity));
-            bool avChanged = SyncAngularVelocity && (avStopped || SyncHelpers.HasChanged(previous.AngularVelocity, av, AngularVelocitySensitivity));
+            bool lvChanged = SyncLinearVelocity && (lvStopped || forceUpdate || SyncHelpers.HasChanged(previous.LinearVelocity, lv, LinearVelocitySensitivity));
+            bool avChanged = SyncAngularVelocity && (avStopped || forceUpdate || SyncHelpers.HasChanged(previous.AngularVelocity, av, AngularVelocitySensitivity));
             
             SyncRigidBody2D sync = new SyncRigidBody2D()
             {
@@ -113,6 +115,18 @@ namespace Soso.Net.Components.NetworkedBodies
                 AngularVelocity = av,
             };
             return sync;
+        }
+
+        protected override void Apply(TransformSnapshot interpolated, TransformSnapshot goal)
+        {
+            base.Apply(interpolated, goal);
+            
+            // If we are out of snapshots, we are not moving
+            if (ClientSnapshots.Count <= 1)
+            {
+                if (SyncPosition) Rb.linearVelocity = Vector2.zero;
+                if (SyncRotation) Rb.angularVelocity = 0;
+            }
         }
 
         protected override void SetPosition(Vector3 position)

@@ -24,7 +24,7 @@ namespace Soso.Net.Components.PredictedBodies
         [SerializeField, Range(20, 200)] public long RecordingIntervalMs = 50;
         [SerializeField] public bool OnlySyncOnChange = false;
         [SerializeField, Range(20, 5000)] public long SendIntervalMs = 500;
-        [SerializeField, Range(0, 50)] public long MinSendIntervalMs = 33;
+        [SerializeField, Range(0, 60)] public long MinSendIntervalMs = 20;
         [SerializeField] public bool AllowAuthoritySwap = false;
         [SerializeField, Range(0, 1000)] public long AuthorityDropDelayMs = 200;
         [SerializeField, Range(100, 5000)] public long AuthorityHeartbeatMs = 1000;
