@@ -6,7 +6,7 @@ namespace Soso.Net.Extensions
     {
         public static void RemoveCount<T1, T2>(this SortedList<T1, T2> list, int count)
         {
-            for (int i = 0; i < count && i < list.Count; i++)
+            for (int i = 0; i < count && list.Count > 0; i++)
             {
                 list.RemoveAt(0);
             }
