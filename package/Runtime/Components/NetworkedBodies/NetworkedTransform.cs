@@ -44,7 +44,6 @@ namespace Soso.Net.Components.NetworkedBodies
         protected readonly SortedList<long, TransformSnapshot> ClientSnapshots = new SortedList<long, TransformSnapshot>(SNAPSHOT_CAPACITY);
     
         protected TransformSnapshot LastSentSnapshot;
-        protected TransformSnapshot? PendingSnapshot;
         private long _lastSendTime = 0;
         private bool _hasSyncedRestState = false;
 
@@ -70,20 +69,23 @@ namespace Soso.Net.Components.NetworkedBodies
 
         protected virtual void FixedUpdate()
         {
-            if (SyncMethod == SYNC_METHOD.FixedUpdate)
+            if (SyncMethod == SYNC_METHOD.FixedUpdate && IsOwned == false)
             {
                 PerformUpdate();
-            }
-            if (PendingSnapshot.HasValue && IsOwned == false && SyncMethod == SYNC_METHOD.FixedUpdate)
-            {
-                Apply(PendingSnapshot.Value, PendingSnapshot.Value);
-                PendingSnapshot = null;
             }
         }
 
         protected virtual void LateUpdate()
         {
-            if (SyncMethod == SYNC_METHOD.Update)
+            if (IsOwned)
+            {
+                if (IsSendReady())
+                {
+                    ReadyToSync();
+                }
+            }
+
+            if (SyncMethod == SYNC_METHOD.Update && IsOwned == false)
             {
                 PerformUpdate();
             }
@@ -93,33 +95,20 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             if (IsOwned)
             {
-                if (IsSendReady())
-                {
-                    ReadyToSync();
-                }
+                return;
             }
-            else
+            if (ClientSnapshots.Count > 0)
             {
-                if (ClientSnapshots.Count > 0)
-                {
-                    SnapshotInterpolation.StepInterpolation(
-                        ClientSnapshots, 
-                        NetworkTime.Time, 
-                        out var from, 
-                        out var to, 
-                        out var t
-                    );
-                    var computed = TransformSnapshot.Interpolate(from, to, (float)t, InterpolatePosition, InterpolateRotation, InterpolateScale);
+                SnapshotInterpolation.StepInterpolation(
+                    ClientSnapshots, 
+                    NetworkTime.Time, 
+                    out var from, 
+                    out var to, 
+                    out var t
+                );
+                var computed = TransformSnapshot.Interpolate(from, to, (float)t, InterpolatePosition, InterpolateRotation, InterpolateScale);
 
-                    if (SyncMethod == SYNC_METHOD.FixedUpdate)
-                    {
-                        PendingSnapshot = computed;
-                    }
-                    else
-                    {
-                        Apply(computed, to);
-                    }
-                }
+                Apply(computed, to);
             }
         }
 
@@ -286,13 +275,13 @@ namespace Soso.Net.Components.NetworkedBodies
         {
             snapshots.Clear();
             
-            TransformSnapshot snapshot = new TransformSnapshot(time - SyncIntervalMs, pos, rot, scale);
+            TransformSnapshot snapshot = new TransformSnapshot(time, pos, rot, scale);
             snapshots[snapshot.Timestamp] = snapshot;
         }
 
         private bool NeedsCorrection(SortedList<long, TransformSnapshot> snapshots, long incomingTime)
         {
-            return snapshots.Count == 1 && incomingTime - snapshots.Keys[0] >= SyncIntervalMs * 2;// + NetworkTime.TimeAdjustmentMs;
+            return snapshots.Count == 1 && incomingTime - snapshots.Keys[0] >= SyncIntervalMs;
         }
 
         protected virtual void Apply(TransformSnapshot interpolated, TransformSnapshot goal)

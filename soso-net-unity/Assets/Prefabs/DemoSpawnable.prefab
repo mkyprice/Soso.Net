@@ -220,8 +220,8 @@ MonoBehaviour:
   RotationSensitivity: 0.05
   ScaleSensitivity: 0.05
   SyncMethod: 1
-  SyncPosition: 0
-  SyncRotation: 0
+  SyncPosition: 1
+  SyncRotation: 1
   SyncScale: 1
   SyncIntervalMs: 33
   InterpolatePosition: 1
@@ -230,8 +230,8 @@ MonoBehaviour:
   SnapshotBufferLimit: 64
   SyncLinearVelocity: 1
   SyncAngularVelocity: 1
-  LinearVelocitySensitivity: 0.837
-  AngularVelocitySensitivity: 0.826
+  LinearVelocitySensitivity: 0.05
+  AngularVelocitySensitivity: 0.05
   RestThreshold: 0.01
   Rb: {fileID: 116973336964311419}
 --- !u!50 &116973336964311419
