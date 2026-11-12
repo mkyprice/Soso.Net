@@ -226,7 +226,7 @@ namespace Soso.Net.Components.PredictedBodies
             float unrecordedRot = Mathf.DeltaAngle(latestRecorded.Rotation, Rb.rotation);
 
             // Correct recorded history from to up to _lastRecordTime
-            var correction = CorrectHistory(state, interpolated, to);
+            var correction = CorrectHistory(state, interpolated);
             if (state.Timestamp < _lastRecordTime)
             {
                 correction.Position += unrecordedMove;
@@ -241,7 +241,7 @@ namespace Soso.Net.Components.PredictedBodies
             _history[lastKey] = correction;
         }
 
-        private RigidBody2DState CorrectHistory(RigidBody2DState authorityState, RigidBody2DState predictedAtAuthTime, int toIndex)
+        private RigidBody2DState CorrectHistory(RigidBody2DState authorityState, RigidBody2DState predictedAtAuthTime)
         {
             bool isAtRest = authorityState.LinearVelocity == Vector2.zero && authorityState.AngularVelocity == 0f;
             float moveScale = isAtRest ? 1f : MoveCoefficient;
@@ -249,8 +249,8 @@ namespace Soso.Net.Components.PredictedBodies
             // Compute the error at time
             Vector2 posError = (authorityState.Position - predictedAtAuthTime.Position) * moveScale;
             float rotError = Mathf.DeltaAngle(predictedAtAuthTime.Rotation, authorityState.Rotation) * moveScale;
-            Vector2 velError = authorityState.LinearVelocity - predictedAtAuthTime.LinearVelocity;
-            float angVelError = authorityState.AngularVelocity - predictedAtAuthTime.AngularVelocity;
+            Vector2 velError = (authorityState.LinearVelocity - predictedAtAuthTime.LinearVelocity) * moveScale;
+            float angVelError = (authorityState.AngularVelocity - predictedAtAuthTime.AngularVelocity) * moveScale;
 
             // Shift history by error
             RigidBody2DState latest = authorityState;
