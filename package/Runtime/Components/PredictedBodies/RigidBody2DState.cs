@@ -1,5 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
 using Soso.Net.Components.NetworkedBodies.Snapshots;
+using Soso.Net.Extensions;
 using Soso.Net.Serializers;
 using Soso.Net.Utils;
 using Soso.Serialization;
@@ -8,18 +9,18 @@ using UnityEngine;
 
 namespace Soso.Net.Components.PredictedBodies
 {
-    [StructLayout(LayoutKind.Sequential)]
     public struct RigidBody2DState : ISnapshot
     {
         public long Timestamp { get; set; }
         public Vector2 Position;
-        public Vector2 PositionDelta;
         public Vector2 Velocity;
-        public Vector2 VelocityDelta;
         public float Rotation;
-        public float RotationDelta;
         public float AngularVelocity;
-        public float AngularVelocityDelta;
+        
+        [NonSerialized] public Vector2 PositionDelta;
+        [NonSerialized] public Vector2 VelocityDelta;
+        [NonSerialized] public float RotationDelta;
+        [NonSerialized] public float AngularVelocityDelta;
 
         public RigidBody2DState(long timestamp, Vector2 position, float rotation, Vector2 velocity, float angularVelocity)
             : this(timestamp, position, Vector2.zero, rotation, 0, velocity, Vector2.zero, angularVelocity, 0)
@@ -54,12 +55,22 @@ namespace Soso.Net.Components.PredictedBodies
         {
             public override RigidBody2DState Deserialize(ref ByteReader reader, SerializationConfig config)
             {
-                return reader.ReadBlittable<RigidBody2DState>();
+                var value = new RigidBody2DState();
+                value.Timestamp = reader.ReadLong();
+                reader.Read(out value.Position);
+                reader.Read(out value.Rotation);
+                reader.Read(out value.Velocity);
+                reader.Read(out value.AngularVelocity);
+                return value;
             }
 
             public override void Serialize(ref ByteWriter writer, RigidBody2DState value, SerializationConfig config)
             {
-                writer.WriteBlittable(value);
+                writer.Write(value.Timestamp);
+                writer.Write(value.Position);
+                writer.Write(value.Rotation);
+                writer.Write(value.Velocity);
+                writer.Write(value.AngularVelocity);
             }
         }
     }
