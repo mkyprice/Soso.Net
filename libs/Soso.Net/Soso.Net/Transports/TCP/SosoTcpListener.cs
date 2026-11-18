@@ -13,6 +13,7 @@ namespace Soso.Net.Transports.TCP
 		
         public readonly Socket Listener;
         private readonly List<SosoTcpConnection> _connections = new List<SosoTcpConnection>();
+        private volatile bool _isRunning = false;
 
         public SosoTcpListener()
         {
@@ -23,6 +24,7 @@ namespace Soso.Net.Transports.TCP
 
         public void StartListener(EndPoint ep, int backlog)
         {
+            _isRunning = true;
             Listener.Bind(ep);
             Listener.Listen(backlog);
             BeginAccept();
@@ -35,6 +37,7 @@ namespace Soso.Net.Transports.TCP
         
         public void Shutdown()
         {
+            _isRunning = false;
             try
             {
                 // Listener.Shutdown(SocketShutdown.Both);
@@ -49,13 +52,40 @@ namespace Soso.Net.Transports.TCP
 
         private void BeginAccept()
         {
+            if (_isRunning == false)
+            {
+                return;
+            }
+            
             Listener.BeginAccept(OnAccept, Listener);
         }
 		
         private void OnAccept(IAsyncResult ar)
         {
+            if (_isRunning == false)
+            {
+                return;
+            }
             Socket listener = (Socket)ar.AsyncState;
-            Socket connectionSock = listener.EndAccept(ar);
+            Socket connectionSock;
+            try
+            {
+                connectionSock = listener.EndAccept(ar);
+            }
+            catch (ObjectDisposedException)
+            {
+                // We called Close
+                return;
+            }
+            catch (SocketException e)
+            {
+                if (_isRunning)
+                {
+                    NetworkLogger.Warn("EndAccept failed with socket error {code}: {message}", e.SocketErrorCode, e.Message);
+                    BeginAccept();
+                }
+                return;
+            }
             NetworkLogger.Info("Accepted new connection");
             SosoTcpConnection connection = new SosoTcpConnection(connectionSock);
             _connections.Add(connection);
