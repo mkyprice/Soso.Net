@@ -14,12 +14,16 @@ namespace Soso.Net
 		public readonly SocketState State;
 		public ISocketConnection Socket => _socket;
 		
+		private const int COMPRESSED_FRAME_PREFIX_SIZE = sizeof(int);
+		private const int PACKET_METADATA_SIZE = PacketHeader.HEADER_SIZE + sizeof(ushort) + sizeof(long);
+		
 		private readonly ISocketConnection _socket;
 		private long _messageNumber = 0;
 		
 		private readonly ISocketProcessor _processor;
 		private readonly ByteBuffer _receiveBuffer;
 		private readonly ByteBuffer _sendBuffer;
+		private ArrayBufferWriter<byte> _decodeBuffers = new ArrayBufferWriter<byte>();
 		
 		internal SosoSocket(ISocketConnection connection, ISocketProcessor processor)
 		{
@@ -111,9 +115,15 @@ namespace Soso.Net
 
 			if (SosoNetwork.UseCompression)
 			{
-				int length = LZ4Frame.Encode(new Span<byte>(_sendBuffer.Buffer, 0, _sendBuffer.Count), _encodeBuffer, SosoNetwork.CompressionSettings);
+				int compressedLength = LZ4Frame.Encode(
+					new Span<byte>(_sendBuffer.Buffer, 0, _sendBuffer.Count), 
+					new Span<byte>(_encodeBuffer, COMPRESSED_FRAME_PREFIX_SIZE, _encodeBuffer.Length - COMPRESSED_FRAME_PREFIX_SIZE), 
+					SosoNetwork.CompressionSettings
+					);
 				
-				_socket.Send(_encodeBuffer, 0, length);
+				BitConverter.TryWriteBytes(new Span<byte>(_encodeBuffer, 0, COMPRESSED_FRAME_PREFIX_SIZE), compressedLength);
+				
+				_socket.Send(_encodeBuffer, 0, compressedLength + COMPRESSED_FRAME_PREFIX_SIZE);
 			}
 			else
 			{
@@ -123,44 +133,78 @@ namespace Soso.Net
 		}
 
 
-		private ArrayBufferWriter<byte> _decodeBuffers = new ArrayBufferWriter<byte>();
 		private void ReadPacketsFromReader()
 		{
-			if (_receiveBuffer.Position <= 0)
+			if (_receiveBuffer.Count <= 0)
 			{
 				return;
 			}
 
-			ByteReader reader;
-			
 			if (SosoNetwork.UseCompression)
 			{
-				var result = LZ4Frame.Decode(_receiveBuffer.Buffer.AsSpan(0, _receiveBuffer.Count), _decodeBuffers);
+				int offset = 0;
+				while (_receiveBuffer.Count - offset >= COMPRESSED_FRAME_PREFIX_SIZE)
+				{
+					int frameLength = BitConverter.ToInt32(_receiveBuffer.Buffer, offset);
+					if (frameLength <= 0 || frameLength > SosoNetwork.BUFFER_SIZE)
+					{
+						NetworkLogger.Error("Invalid compressed frame length {length}. Flushing receive buffer.", frameLength);
+						_receiveBuffer.Flush();
+						_decodeBuffers.Clear();
+						return;
+					}
 
-				reader = new ByteReader(result.WrittenSpan);
+					if (_receiveBuffer.Count - offset < COMPRESSED_FRAME_PREFIX_SIZE + frameLength)
+					{
+						// Partial frame. Wait for remaining bytes on next socket read
+						break;
+					}
+
+					var compressedFrame = _receiveBuffer.Buffer.AsSpan(offset + COMPRESSED_FRAME_PREFIX_SIZE, frameLength);
+					LZ4Frame.Decode(compressedFrame, _decodeBuffers);
+
+					offset += COMPRESSED_FRAME_PREFIX_SIZE + frameLength;
+				}
+
+				if (_decodeBuffers.WrittenCount > 0)
+				{
+					ByteReader reader = new ByteReader(_decodeBuffers.WrittenSpan);
+					ReadPackets(ref reader);
+					_decodeBuffers.Clear();
+				}
+
+				// Preserve trailing partial frame bytes
+				_receiveBuffer.Consume(offset);
 			}
 			else
 			{
-				reader = new ByteReader(_receiveBuffer.Buffer.AsSpan(0, _receiveBuffer.Count));
+				ByteReader reader = new ByteReader(_receiveBuffer.Buffer.AsSpan(0, _receiveBuffer.Count));
+				int consumed = ReadPackets(ref reader);
+				_receiveBuffer.Consume(consumed);
 			}
-			while ((reader.Count - reader.Position) > PacketHeader.HEADER_SIZE)
+		}
+		
+		private int ReadPackets(ref ByteReader reader)
+		{
+			while ((reader.Count - reader.Position) >= PACKET_METADATA_SIZE)
 			{
 				PacketHeader header = PacketHeader.Peek(ref reader);
-				if (reader.Count - reader.Position < header.Length + PacketHeader.HEADER_SIZE)
+				int fullPacketSize = PACKET_METADATA_SIZE + header.Length;
+
+				if (reader.Count - reader.Position < fullPacketSize)
 				{
-					NetworkLogger.Warn("Packet size was too small. Expected: {header.Length}. Buffer: {buff}", header.Length, reader.Count - reader.Position);
+					NetworkLogger.Warn("Packet size was too small. Expected: {expected}. Buffer: {buff}", fullPacketSize, reader.Count - reader.Position);
 					break;
 				}
 
 				reader.Skip(PacketHeader.HEADER_SIZE);
-					
+
 				_messageNumber++;
 				Packet packet = Packet.Read(ref reader, header, _messageNumber);
 				_processor.OnMessage(this, packet.Header.PacketType, packet.Data, packet.Channel, packet.Timestamp, _messageNumber);
 			}
-			
-			_receiveBuffer.Flush();
-			_decodeBuffers.Clear();
+
+			return reader.Position;
 		}
 	}
 }

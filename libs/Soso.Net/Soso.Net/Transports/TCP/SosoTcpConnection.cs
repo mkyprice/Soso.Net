@@ -51,7 +51,17 @@ namespace Soso.Net.Transports.TCP
 		{
 			try
 			{
-				return Socket.Send(bytes, offset, count, SocketFlags.None);
+				int totalSent = 0;
+				while (totalSent < count)
+				{
+					int sent = Socket.Send(bytes, offset + totalSent, count - totalSent, SocketFlags.None);
+					if (sent <= 0)
+					{
+						break;
+					}
+					totalSent += sent;
+				}
+				return totalSent;
 			}
 			catch (SocketException e)
 			{
@@ -66,11 +76,29 @@ namespace Soso.Net.Transports.TCP
 			Socket.Disconnect(false);
 			Socket.Close();
 		}
+		
 		public void Process()
 		{
-			if (Socket.Available > 0)
+			while (Socket.Available > 0)
 			{
-				int count = Socket.Receive(_byteProcessor.Buffer);
+				int remainingCapacity = _byteProcessor.Buffer.Length - _byteProcessor.Position;
+				if (remainingCapacity <= 0)
+				{
+					NetworkLogger.Warn("TCP receive buffer is full ({size} bytes)", _byteProcessor.Buffer.Length);
+					break;
+				}
+
+				int count = Socket.Receive(
+					_byteProcessor.Buffer,
+					_byteProcessor.Position,
+					remainingCapacity,
+					SocketFlags.None);
+
+				if (count <= 0)
+				{
+					break;
+				}
+
 				_byteProcessor.Receive(count);
 			}
 		}

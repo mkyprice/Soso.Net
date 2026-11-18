@@ -32,4 +32,23 @@ public class ByteBuffer
         _position = 0;
         _count = 0;
     }
+    
+    public void Consume(int count)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        if (count >= _count)
+        {
+            Flush();
+            return;
+        }
+
+        int remaining = _count - count;
+        System.Buffer.BlockCopy(Buffer, count, Buffer, 0, remaining);
+        _position = remaining;
+        _count = remaining;
+    }
 }

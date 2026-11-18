@@ -26,7 +26,7 @@ class Program
         }
         catch (Exception e)
         {
-            NetworkLogger.Error("{e}", e);
+            NetworkLogger.Error("{e}", e.Message);
         }
     }
 	
