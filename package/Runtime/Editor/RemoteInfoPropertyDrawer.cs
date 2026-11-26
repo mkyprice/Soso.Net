@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+
+using System;
 using System.Globalization;
 using Soso.Net.Models;
 using UnityEditor;
@@ -77,3 +79,5 @@ namespace Soso.Net.Editor
         }
     }
 }
+
+#endif

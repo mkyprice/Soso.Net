@@ -1,4 +1,6 @@
-﻿using Soso.Net.Objects;
+﻿#if UNITY_EDITOR
+
+using Soso.Net.Objects;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine.UIElements;
@@ -37,3 +39,5 @@ namespace Soso.Net.Editor
         }
     }
 }
+
+#endif
